@@ -170,24 +170,24 @@
 		color: #c9d1d9;
 	}
 
-	/* Dark scrollbar */
+	/* Dark scrollbar - matches editor */
 	.preview-container::-webkit-scrollbar {
 		width: 12px;
 		height: 12px;
 	}
 
 	.preview-container::-webkit-scrollbar-track {
-		background: #1e1e1e;
+		background: #0d1117;
 	}
 
 	.preview-container::-webkit-scrollbar-thumb {
-		background: #424242;
+		background: #30363d;
 		border-radius: 6px;
-		border: 3px solid #1e1e1e;
+		border: 3px solid #0d1117;
 	}
 
 	.preview-container::-webkit-scrollbar-thumb:hover {
-		background: #555555;
+		background: #484f58;
 	}
 
 	/* GitHub markdown dark theme overrides */

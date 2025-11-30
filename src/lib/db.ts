@@ -120,7 +120,7 @@ export async function getAllFiles(): Promise<File[]> {
 }
 
 // Welcome content template
-export const WELCOME_CONTENT = `# Welcome to SvelteMark Studio! 📝
+export const WELCOME_CONTENT = `# Welcome to SvelteMark! 📝
 
 This is your **local-first** markdown editor with powerful features.
 
