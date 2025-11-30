@@ -6,14 +6,41 @@
 	interface Props {
 		items: FileTreeItem[];
 		depth?: number;
+		onDragStart?: (item: FileTreeItem, event: DragEvent) => void;
+		onDragEnd?: () => void;
+		dragOverItem?: FileTreeItem | null;
+		setDragOverItem?: (item: FileTreeItem | null) => void;
 	}
 
-	let { items, depth = 0 }: Props = $props();
+	let { 
+		items, 
+		depth = 0,
+		onDragStart: parentDragStart,
+		onDragEnd: parentDragEnd,
+		dragOverItem: parentDragOverItem,
+		setDragOverItem: parentSetDragOverItem
+	}: Props = $props();
 
 	// Context menu and rename state
 	let contextMenu = $state<{ x: number; y: number; item: FileTreeItem } | null>(null);
 	let renamingItem = $state<FileTreeItem | null>(null);
 	let renameValue = $state<string>('');
+
+	// Drag and drop state (only manage at root level)
+	let draggingItem = $state<FileTreeItem | null>(null);
+	let localDragOverItem = $state<FileTreeItem | null>(null);
+
+	// Use parent's drag state if provided, otherwise use local state
+	const isRoot = depth === 0;
+	const dragOverItem = $derived(isRoot ? localDragOverItem : parentDragOverItem);
+
+	function setDragOverItem(item: FileTreeItem | null) {
+		if (isRoot) {
+			localDragOverItem = item;
+		} else if (parentSetDragOverItem) {
+			parentSetDragOverItem(item);
+		}
+	}
 
 	function handleFileClick(item: FileTreeItem) {
 		if (renamingItem?.id === item.id) return; // Don't select while renaming
@@ -85,6 +112,105 @@
 		closeContextMenu();
 	}
 
+	// Drag and Drop handlers
+	function handleDragStart(event: DragEvent, item: FileTreeItem) {
+		if (renamingItem) return;
+		
+		if (isRoot) {
+			draggingItem = item;
+		} else if (parentDragStart) {
+			parentDragStart(item, event);
+		}
+
+		if (event.dataTransfer) {
+			event.dataTransfer.effectAllowed = 'move';
+			event.dataTransfer.setData('text/plain', JSON.stringify({
+				type: item.type,
+				id: item.id,
+				name: item.name,
+				parentId: item.parentId
+			}));
+		}
+
+		// Add a small delay to show the drag effect
+		const target = event.currentTarget as HTMLElement;
+		requestAnimationFrame(() => {
+			target.classList.add('dragging');
+		});
+	}
+
+	function handleDragEnd(event: DragEvent) {
+		const target = event.currentTarget as HTMLElement;
+		target.classList.remove('dragging');
+		
+		if (isRoot) {
+			draggingItem = null;
+			localDragOverItem = null;
+		} else if (parentDragEnd) {
+			parentDragEnd();
+		}
+	}
+
+	function handleDragOver(event: DragEvent, item: FileTreeItem) {
+		event.preventDefault();
+		event.stopPropagation();
+		
+		if (event.dataTransfer) {
+			event.dataTransfer.dropEffect = 'move';
+		}
+
+		// Only folders can be drop targets
+		if (item.type === 'folder') {
+			setDragOverItem(item);
+		}
+	}
+
+	function handleDragLeave(event: DragEvent) {
+		// Only clear if we're leaving to outside the tree
+		const relatedTarget = event.relatedTarget as HTMLElement;
+		if (!relatedTarget?.closest('.tree-button')) {
+			setDragOverItem(null);
+		}
+	}
+
+	async function handleDrop(event: DragEvent, targetItem: FileTreeItem) {
+		event.preventDefault();
+		event.stopPropagation();
+
+		setDragOverItem(null);
+
+		const data = event.dataTransfer?.getData('text/plain');
+		if (!data) return;
+
+		try {
+			const draggedData = JSON.parse(data);
+			const draggedType = draggedData.type as 'file' | 'folder';
+			const draggedId = draggedData.id as number;
+
+			// Can only drop onto folders
+			if (targetItem.type !== 'folder') return;
+
+			// Don't drop on itself
+			if (draggedType === 'folder' && draggedId === targetItem.id) return;
+
+			// Don't drop if already in this folder
+			if (draggedData.parentId === targetItem.id) return;
+
+			if (draggedType === 'file') {
+				await appState.moveFileToFolder(draggedId, targetItem.id);
+			} else {
+				await appState.moveFolderToParent(draggedId, targetItem.id);
+			}
+
+			// Open the target folder to show the moved item
+			if (!targetItem.isOpen) {
+				await appState.toggleFolder(targetItem.id);
+			}
+		} catch (error) {
+			console.error('Failed to handle drop:', error);
+		}
+	}
+
 	// Close context menu when clicking outside
 	function handleWindowClick() {
 		closeContextMenu();
@@ -101,9 +227,16 @@
 				class:active={item.type === 'file' && item.id === appState.activeFileId}
 				class:folder={item.type === 'folder'}
 				class:file={item.type === 'file'}
+				class:drag-over={dragOverItem?.id === item.id && item.type === 'folder'}
+				draggable="true"
 				onclick={() => handleFileClick(item)}
 				onkeydown={(e) => handleKeydown(e, item)}
 				oncontextmenu={(e) => handleContextMenu(e, item)}
+				ondragstart={(e) => handleDragStart(e, item)}
+				ondragend={(e) => handleDragEnd(e)}
+				ondragover={(e) => handleDragOver(e, item)}
+				ondragleave={(e) => handleDragLeave(e)}
+				ondrop={(e) => handleDrop(e, item)}
 			>
 				<span class="icon">
 					{#if item.type === 'folder'}
@@ -145,7 +278,27 @@
 			</button>
 
 			{#if item.type === 'folder' && item.isOpen && item.children && item.children.length > 0}
-				<FileTree items={item.children} depth={depth + 1} />
+				<FileTree 
+					items={item.children} 
+					depth={depth + 1}
+					onDragStart={(dragItem, event) => {
+						if (isRoot) {
+							draggingItem = dragItem;
+						} else if (parentDragStart) {
+							parentDragStart(dragItem, event);
+						}
+					}}
+					onDragEnd={() => {
+						if (isRoot) {
+							draggingItem = null;
+							localDragOverItem = null;
+						} else if (parentDragEnd) {
+							parentDragEnd();
+						}
+					}}
+					dragOverItem={isRoot ? localDragOverItem : parentDragOverItem}
+					setDragOverItem={setDragOverItem}
+				/>
 			{/if}
 		</li>
 	{/each}
@@ -211,6 +364,16 @@
 	.tree-button.active {
 		background: #1f6feb;
 		color: #ffffff;
+	}
+
+	.tree-button.drag-over {
+		background: #1a3a5c;
+		outline: 2px dashed #58a6ff;
+		outline-offset: -2px;
+	}
+
+	:global(.tree-button.dragging) {
+		opacity: 0.5;
 	}
 
 	.icon {

@@ -10,7 +10,7 @@ export interface Folder {
 
 export interface File {
     id?: number;
-    folderId: number;
+    folderId: number | null;
     title: string;
     content: string;
     createdAt: Date;
@@ -45,7 +45,7 @@ export async function createFolder(
 }
 
 export async function createFile(
-    folderId: number,
+    folderId: number | null,
     title: string,
     content: string = ''
 ): Promise<number> {
@@ -101,6 +101,25 @@ export async function toggleFolderOpen(id: number): Promise<void> {
     if (folder) {
         await db.folders.update(id, { isOpen: !folder.isOpen });
     }
+}
+
+export async function moveFile(fileId: number, newFolderId: number | null): Promise<void> {
+    await db.files.update(fileId, { folderId: newFolderId });
+}
+
+export async function moveFolder(folderId: number, newParentId: number | null): Promise<void> {
+    // Prevent moving a folder into itself or its descendants
+    if (newParentId !== null) {
+        let currentId: number | null = newParentId;
+        while (currentId !== null) {
+            if (currentId === folderId) {
+                throw new Error('Cannot move a folder into itself or its descendants');
+            }
+            const parentFolder: Folder | undefined = await db.folders.get(currentId);
+            currentId = parentFolder?.parentId ?? null;
+        }
+    }
+    await db.folders.update(folderId, { parentId: newParentId });
 }
 
 export async function getAllFolders(): Promise<Folder[]> {

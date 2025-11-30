@@ -6,6 +6,7 @@
 	let showNewFolder = $state(false);
 	let showNewFile = $state(false);
 	let selectedFolderId = $state<number | null>(null);
+	let isDragOverRoot = $state(false);
 
 	async function handleCreateFolder() {
 		if (!newItemName.trim()) return;
@@ -16,10 +17,8 @@
 
 	async function handleCreateFile() {
 		if (!newItemName.trim()) return;
-		const folderId = selectedFolderId || appState.folders[0]?.id;
-		if (folderId) {
-			await appState.newFile(folderId, newItemName.trim());
-		}
+		// Create file at root level if no folder selected, or in selected folder
+		await appState.newFile(selectedFolderId, newItemName.trim());
 		newItemName = '';
 		showNewFile = false;
 	}
@@ -35,6 +34,58 @@
 			newItemName = '';
 			showNewFolder = false;
 			showNewFile = false;
+		}
+	}
+
+	// Handle dropping items to root level
+	function handleRootDragOver(event: DragEvent) {
+		// Only handle if dropping directly on the container, not on a tree item
+		const target = event.target as HTMLElement;
+		if (target.classList.contains('file-tree-container') || target.classList.contains('root-drop-zone')) {
+			event.preventDefault();
+			event.stopPropagation();
+			if (event.dataTransfer) {
+				event.dataTransfer.dropEffect = 'move';
+			}
+			isDragOverRoot = true;
+		}
+	}
+
+	function handleRootDragLeave(event: DragEvent) {
+		const target = event.target as HTMLElement;
+		if (target.classList.contains('file-tree-container') || target.classList.contains('root-drop-zone')) {
+			isDragOverRoot = false;
+		}
+	}
+
+	async function handleRootDrop(event: DragEvent) {
+		const target = event.target as HTMLElement;
+		if (!target.classList.contains('file-tree-container') && !target.classList.contains('root-drop-zone')) {
+			return;
+		}
+
+		event.preventDefault();
+		event.stopPropagation();
+		isDragOverRoot = false;
+
+		const data = event.dataTransfer?.getData('text/plain');
+		if (!data) return;
+
+		try {
+			const draggedData = JSON.parse(data);
+			const draggedType = draggedData.type as 'file' | 'folder';
+			const draggedId = draggedData.id as number;
+
+			// Don't move if already at root
+			if (draggedData.parentId === null) return;
+
+			if (draggedType === 'file') {
+				await appState.moveFileToFolder(draggedId, null);
+			} else {
+				await appState.moveFolderToParent(draggedId, null);
+			}
+		} catch (error) {
+			console.error('Failed to handle root drop:', error);
 		}
 	}
 </script>
@@ -94,8 +145,27 @@
 		</div>
 	{/if}
 
-	<div class="file-tree-container">
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div 
+		class="file-tree-container"
+		class:drag-over-root={isDragOverRoot}
+		ondragover={handleRootDragOver}
+		ondragleave={handleRootDragLeave}
+		ondrop={handleRootDrop}
+	>
 		<FileTree items={appState.fileTree} />
+		{#if appState.fileTree.length === 0}
+			<div class="empty-state">
+				<p>No files yet</p>
+				<p class="hint">Create a file or folder to get started</p>
+			</div>
+		{/if}
+		<div 
+			class="root-drop-zone"
+			class:visible={isDragOverRoot}
+		>
+			Drop here to move to root
+		</div>
 	</div>
 </aside>
 
@@ -195,5 +265,53 @@
 		padding: 8px;
 		min-height: 0;
 		background: #161b22;
+		position: relative;
+		transition: background-color 0.15s;
+	}
+
+	.file-tree-container.drag-over-root {
+		background: #1a3a5c;
+	}
+
+	.empty-state {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		padding: 24px;
+		color: #8b949e;
+		text-align: center;
+	}
+
+	.empty-state p {
+		margin: 0;
+	}
+
+	.empty-state .hint {
+		font-size: 12px;
+		margin-top: 4px;
+		opacity: 0.7;
+	}
+
+	.root-drop-zone {
+		position: absolute;
+		bottom: 8px;
+		left: 8px;
+		right: 8px;
+		padding: 12px;
+		background: #1a3a5c;
+		border: 2px dashed #58a6ff;
+		border-radius: 6px;
+		color: #58a6ff;
+		font-size: 12px;
+		text-align: center;
+		opacity: 0;
+		pointer-events: none;
+		transition: opacity 0.15s;
+	}
+
+	.root-drop-zone.visible {
+		opacity: 1;
+		pointer-events: auto;
 	}
 </style>

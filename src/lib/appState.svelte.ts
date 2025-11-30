@@ -12,6 +12,8 @@ import {
     deleteFile,
     deleteFolder,
     toggleFolderOpen,
+    moveFile,
+    moveFolder,
     initializeDB,
     resetWelcomeFile
 } from './db';
@@ -85,13 +87,26 @@ function buildFileTree(folders: Folder[], files: File[]): FileTreeItem[] {
             parentId: file.folderId
         };
 
+        // Root-level file (no folder)
+        if (file.folderId === null) {
+            folderMap['null'].push(fileItem);
+            continue;
+        }
+
         // Find the folder and add file to it
+        let foundFolder = false;
         for (const items of Object.values(folderMap)) {
             const folder = items.find((item: FileTreeItem) => item.type === 'folder' && item.id === file.folderId);
             if (folder && folder.children) {
                 folder.children.push(fileItem);
+                foundFolder = true;
                 break;
             }
+        }
+
+        // If folder not found (orphaned file), add to root
+        if (!foundFolder) {
+            folderMap['null'].push(fileItem);
         }
     }
 
@@ -214,7 +229,7 @@ async function newFolder(name: string, parentId: number | null = null): Promise<
     return id;
 }
 
-async function newFile(folderId: number, title: string): Promise<number> {
+async function newFile(folderId: number | null, title: string): Promise<number> {
     const id = await createFile(folderId, title, '');
     await refreshData();
     await selectFile(id);
@@ -256,6 +271,21 @@ async function renameFile(id: number, newTitle: string): Promise<void> {
 async function renameFolder(id: number, newName: string): Promise<void> {
     await updateFolderName(id, newName);
     await refreshData();
+}
+
+async function moveFileToFolder(fileId: number, newFolderId: number | null): Promise<void> {
+    await moveFile(fileId, newFolderId);
+    await refreshData();
+}
+
+async function moveFolderToParent(folderId: number, newParentId: number | null): Promise<void> {
+    try {
+        await moveFolder(folderId, newParentId);
+        await refreshData();
+    } catch (error) {
+        console.error('Failed to move folder:', error);
+        throw error;
+    }
 }
 
 function toggleViewOnlyMode(): void {
@@ -461,6 +491,8 @@ export const appState = {
     toggleFolder,
     renameFile,
     renameFolder,
+    moveFileToFolder,
+    moveFolderToParent,
     toggleViewOnlyMode,
     setViewOnlyMode,
     toggleAutoHideUI,
