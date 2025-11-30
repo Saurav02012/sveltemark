@@ -979,7 +979,7 @@
 		left: 0;
 		bottom: 0;
 		width: 280px !important;
-		z-index: 100;
+		z-index: 10000;
 		transform: translateX(0) !important;
 		opacity: 1 !important;
 	}
