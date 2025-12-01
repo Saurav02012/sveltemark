@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { processMarkdown } from '$lib/markdown';
+	import { onMount, tick } from 'svelte';
+	import { processMarkdownBlocks, diffBlocks, type MarkdownBlock } from '$lib/markdown';
 	import mermaid from 'mermaid';
 
 	interface Props {
@@ -12,8 +12,9 @@
 	let { content = '', onscroll, class: className = '' }: Props = $props();
 
 	let previewContainer: HTMLDivElement;
-	let htmlContent = $state<string>('');
+	let blocks = $state<MarkdownBlock[]>([]);
 	let isSyncingScroll = false;
+	let processingTimeout: ReturnType<typeof setTimeout> | null = null;
 
 	// Initialize mermaid
 	onMount(() => {
@@ -25,35 +26,60 @@
 		});
 	});
 
-	// Process markdown when content changes
+	// Debounced block processing when content changes
 	$effect(() => {
-		processMarkdown(content).then((html) => {
-			htmlContent = html;
-		});
+		const currentContent = content;
+		
+		// Clear any pending processing
+		if (processingTimeout) {
+			clearTimeout(processingTimeout);
+		}
+
+		// Debounce processing to avoid excessive updates
+		processingTimeout = setTimeout(async () => {
+			const newBlocks = await processMarkdownBlocks(currentContent);
+			const diffs = diffBlocks(blocks, newBlocks);
+			
+			// Check if we have actual changes
+			const hasChanges = diffs.some(d => d.type !== 'keep');
+			
+			if (hasChanges) {
+				// Apply the new blocks
+				blocks = newBlocks;
+			}
+		}, 16); // ~60fps debounce
 	});
 
-	// Render mermaid diagrams after HTML is updated
+	// Render mermaid diagrams for newly added/updated blocks
 	$effect(() => {
-		if (htmlContent && previewContainer) {
-			// Use setTimeout to ensure DOM is updated
-			setTimeout(async () => {
-				const mermaidDivs = previewContainer.querySelectorAll('.mermaid');
-				for (const div of mermaidDivs) {
-					const code = div.getAttribute('data-mermaid');
-					if (code && !div.querySelector('svg')) {
-						try {
-							const id = `mermaid-${Math.random().toString(36).substr(2, 9)}`;
-							const { svg } = await mermaid.render(id, code);
-							div.innerHTML = svg;
-						} catch (err) {
-							console.error('Mermaid render error:', err);
-							div.innerHTML = `<pre class="mermaid-error">Error rendering diagram: ${err}</pre>`;
-						}
-					}
-				}
-			}, 0);
+		if (blocks.length > 0 && previewContainer) {
+			// Use tick to ensure DOM is updated, then render mermaid
+			tick().then(() => {
+				renderMermaidDiagrams();
+			});
 		}
 	});
+
+	async function renderMermaidDiagrams() {
+		if (!previewContainer) return;
+		
+		const mermaidDivs = previewContainer.querySelectorAll('.mermaid:not([data-rendered])');
+		for (const div of mermaidDivs) {
+			const code = div.getAttribute('data-mermaid');
+			if (code) {
+				try {
+					const id = `mermaid-${Math.random().toString(36).substr(2, 9)}`;
+					const { svg } = await mermaid.render(id, code);
+					div.innerHTML = svg;
+					div.setAttribute('data-rendered', 'true');
+				} catch (err) {
+					console.error('Mermaid render error:', err);
+					div.innerHTML = `<pre class="mermaid-error">Error rendering diagram: ${err}</pre>`;
+					div.setAttribute('data-rendered', 'true');
+				}
+			}
+		}
+	}
 
 	// Handle scroll events for scroll sync (proportional)
 	function handleScroll() {
@@ -108,7 +134,7 @@
 
 	// Get rendered HTML content for printing (with light theme mermaid)
 	export async function getHTMLForPrint(): Promise<string> {
-		if (!previewContainer) return htmlContent;
+		if (!previewContainer) return blocks.map(b => b.html).join('\n');
 		
 		// Clone the content
 		const clone = previewContainer.cloneNode(true) as HTMLDivElement;
@@ -142,13 +168,24 @@
 			}
 		}
 		
+		// Extract content from markdown-block wrappers to get clean HTML
+		const blockDivs = clone.querySelectorAll('.markdown-block');
+		if (blockDivs.length > 0) {
+			// Collect innerHTML from each block wrapper
+			const htmlParts: string[] = [];
+			blockDivs.forEach(blockDiv => {
+				htmlParts.push(blockDiv.innerHTML);
+			});
+			return htmlParts.join('\n');
+		}
+		
 		return clone.innerHTML;
 	}
 
 	// Get rendered HTML content (includes rendered mermaid SVGs - dark theme)
 	export function getHTML(): string {
 		// Return the actual DOM content which includes rendered mermaid diagrams
-		return previewContainer?.innerHTML || htmlContent;
+		return previewContainer?.innerHTML || blocks.map(b => b.html).join('\n');
 	}
 </script>
 
@@ -157,7 +194,11 @@
 	class="preview-container markdown-body {className}"
 	onscroll={handleScroll}
 >
-	{@html htmlContent}
+	{#each blocks as block (block.id)}
+		<div class="markdown-block" data-block-id={block.id} data-start-line={block.startLine}>
+			{@html block.html}
+		</div>
+	{/each}
 </div>
 
 <style>
@@ -168,6 +209,11 @@
 		padding: 20px;
 		background: #0d1117;
 		color: #c9d1d9;
+	}
+
+	/* Block wrapper - seamless rendering */
+	.markdown-block {
+		display: contents;
 	}
 
 	/* Dark scrollbar - matches editor */

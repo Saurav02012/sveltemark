@@ -276,8 +276,27 @@
 					pre, code {
 						background: #f6f8fa !important;
 					}
+					/* KaTeX display math styling */
+					.katex-display {
+						display: block;
+						margin: 1em 0;
+						text-align: center;
+						overflow-x: auto;
+						overflow-y: hidden;
+					}
+					.katex-display > .katex {
+						display: inline-block;
+						text-align: initial;
+					}
+					/* Ensure KaTeX inline math doesn't break */
+					.katex {
+						font-size: 1.1em;
+					}
 					@media print {
 						body { padding: 20px; }
+						.katex-display {
+							page-break-inside: avoid;
+						}
 					}
 				</style>
 			</head>
@@ -288,9 +307,11 @@
 		`);
 		
 		printWindow.document.close();
+		
+		// Wait for stylesheets and fonts to load before printing
 		setTimeout(() => {
 			printWindow.print();
-		}, 250);
+		}, 500);
 	}
 
 	// Keyboard shortcuts
