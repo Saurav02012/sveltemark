@@ -21,7 +21,34 @@ const ASSETS = [
 self.addEventListener('install', (event) => {
     async function addFilesToCache() {
         const cache = await caches.open(CACHE);
-        await cache.addAll(ASSETS);
+
+        // Cache assets individually to handle failures gracefully
+        // (addAll fails if ANY request fails)
+        await Promise.all(
+            ASSETS.map(async (asset) => {
+                try {
+                    const response = await fetch(asset);
+                    if (response.ok) {
+                        await cache.put(asset, response);
+                    }
+                } catch {
+                    // Ignore individual fetch failures
+                    console.warn(`Failed to cache: ${asset}`);
+                }
+            })
+        );
+
+        // Also explicitly cache the root for navigation fallback
+        try {
+            const indexResponse = await fetch('/');
+            if (indexResponse.ok) {
+                await cache.put('/', indexResponse.clone());
+                await cache.put('/index.html', indexResponse.clone());
+            }
+        } catch {
+            // Ignore fetch errors during install
+        }
+
         // Take over immediately
         await self.skipWaiting();
     }
