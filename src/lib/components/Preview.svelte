@@ -427,12 +427,15 @@
 			const code = div.getAttribute('data-mermaid');
 			if (code) {
 				try {
-					// Temporarily switch to light theme
+					// Temporarily switch to light theme with wrapping enabled
 					mermaid.initialize({
 						startOnLoad: false,
 						theme: 'default',
 						securityLevel: 'loose',
-						fontFamily: 'inherit'
+						fontFamily: 'inherit',
+						htmlLabels: false,
+						markdownAutoWrap: true,
+						wrap: true
 					});
 					const id = `mermaid-print-${Math.random().toString(36).substr(2, 9)}`;
 					const { svg } = await mermaid.render(id, code);
@@ -475,12 +478,15 @@
 						}
 					}
 					
-					// Restore dark theme
+					// Restore dark theme with wrapping enabled
 					mermaid.initialize({
 						startOnLoad: false,
 						theme: 'dark',
 						securityLevel: 'loose',
-						fontFamily: 'inherit'
+						fontFamily: 'inherit',
+						htmlLabels: false,
+						markdownAutoWrap: true,
+						wrap: true
 					});
 				} catch (err) {
 					console.error('Mermaid print render error:', err);
