@@ -533,6 +533,7 @@
 		width: 100%;
 		overflow-y: auto;
 		padding: 20px;
+		padding-top: 0;
 		background: #0d1117;
 		color: #c9d1d9;
 	}
