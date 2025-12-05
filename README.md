@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="images/logo.webp" alt="SvelteMark Logo" width="120">
+<img src="image/logo.webp" alt="SvelteMark Logo" width="120">
 
 # SvelteMark
 
@@ -16,7 +16,7 @@ Your notes never leave your device. No accounts. No tracking. No cloud.
 
 ---
 
-![SvelteMark Screenshot](images/screenshot.webp)  
+![SvelteMark Screenshot](image/screenshot.webp)  
 
 <!-- TODO: Add actual screenshot -->
 
@@ -49,27 +49,27 @@ Your notes never leave your device. No accounts. No tracking. No cloud.
 
 ### Editor with Live Preview
 
-![SvelteMark Editor Screenshot](images/screenshot.webp)
+![SvelteMark Editor Screenshot](image/screenshot.webp)
 _Split-view editor with live markdown preview, file explorer on the left_
 
 ### Markdown Preview with GitHub Styling
 
-![Preview Mode](images/preview.webp)
+![Preview Mode](image/preview.webp)
 _Beautiful rendered markdown with GitHub-style formatting_
 
 ### File Explorer & Organization
 
-![File Tree](images/filetree.webp)
+![File Tree](image/filetree.webp)
 _Hierarchical file and folder organization with drag-and-drop support_
 
 ### Formatting Toolbar & Context Menu
 
-![Formatting Tools](images/toolbar.webp)
+![Formatting Tools](image/toolbar.webp)
 _Comprehensive formatting options via toolbar and right-click context menu_
 
 ### Help & Keyboard Shortcuts
 
-![Help Panel](images/help.webp)
+![Help Panel](image/help.webp)
 _Built-in help system with all keyboard shortcuts and markdown examples_
 
 ## Getting Started
