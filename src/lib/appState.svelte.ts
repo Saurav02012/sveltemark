@@ -406,14 +406,14 @@ async function importBackup(jsonString: string): Promise<void> {
         if (a.parentId !== null && b.parentId === null) return 1;
         return 0;
     });
-    
+
     const folderIdMap: Record<number, number> = {};
     for (const folder of sortedFolders) {
         const oldId = folder.id;
         const newParentId = folder.parentId !== null ? folderIdMap[folder.parentId] ?? null : null;
         const newId = await createFolder(folder.name, newParentId);
         folderIdMap[oldId] = newId;
-        
+
         // Preserve folder open/closed state
         if (folder.isOpen === false) {
             await toggleFolderOpen(newId);
@@ -431,7 +431,7 @@ async function importBackup(jsonString: string): Promise<void> {
     activeFileId = null;
     buffer = '';
     dirty = false;
-    
+
     // Select first file if available
     if (files.length > 0) {
         await selectFile(files[0].id!);
