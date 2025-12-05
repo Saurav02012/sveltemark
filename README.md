@@ -16,85 +16,75 @@ Your notes never leave your device. No accounts. No tracking. No cloud.
 
 ---
 
-![SvelteMark Screenshot](images/screenshot.webp)
+![SvelteMark Screenshot](images/Screenshot.webp)  
 
 <!-- TODO: Add actual screenshot -->
 
-## Features
+## ✨ Features
 
-### Privacy & Security
+### 🔒 Core Philosophy
+*   **Local-First Architecture:** 100% of data lives in your browser's IndexedDB via Dexie.js.
+*   **Privacy Focused:** Zero telemetry, no server uploads, no account required.
+*   **Offline Ready:** Full PWA support. Install it on your device and write without internet.
 
-- **100% Local Storage** - All data stored in your browser's IndexedDB
-- **No Server Communication** - Zero network requests for your notes
-- **No Account Required** - Start writing immediately, no sign-up
-- **Export Your Data** - Full data portability with JSON backup
+### ⚡ Editor Capabilities
+*   **Live Preview:** Real-time rendering with **CodeMirror 6**.
+*   **Smart Scroll Sync:** Bi-directional scrolling matches your editor and preview perfectly.
+*   **Rich Content:**
+    *   **Diagrams:** Native [Mermaid.js](https://mermaid.js.org/) support (Flowcharts, Sequence, Gantt).
+    *   **Math:** LaTeX equations via [KaTeX](https://katex.org/).
+    *   **GFM:** Full GitHub Flavored Markdown support (Tables, Task lists, etc).
+*   **File System:** Hierarchical file tree with drag-and-drop organization.
 
-### Offline Support
+### 🛠️ Tools
+*   **Backup & Restore:** One-click JSON export of your entire database.
+*   **Distraction Free:** Auto-hiding UI and "View Only" modes.
+*   **Vim Mode:** (Coming soon/Supported via CodeMirror).
+*   **Print Ready:** CSS optimized for beautiful PDF exports (`Ctrl+P`).
 
-- **Full PWA Support** - Install as a native app on desktop and mobile
-- **Works Offline** - Continue writing even without internet connection
-- **Service Worker Caching** - All app assets cached for instant loading
-- **Auto-Sync Updates** - Automatically updates when new versions are available
+---
 
-### Core Editor
 
-- **CodeMirror 6 Editor** - Powerful text editing with syntax highlighting
-- **Live Preview** - Real-time markdown rendering with GitHub styling
-- **Fine-Grained Reactivity** - Block-based rendering that only updates changed sections
-- **Scroll Sync** - Proportional scroll synchronization between editor and preview
-- **Auto-save** - Automatic saving with debounced updates
+## 📸 Screenshots
 
-### Markdown Support
+### Editor with Live Preview
 
-- **GitHub Flavored Markdown** - Tables, task lists, strikethrough, and more
-- **Math Equations** - LaTeX math rendering with KaTeX
-- **Mermaid Diagrams** - Flowcharts, sequence diagrams, pie charts
-- **Syntax Highlighting** - Code block highlighting for 100+ languages
-- **Copy Code Button** - One-click copy for code blocks
+![SvelteMark Editor Screenshot](images/Screenshot.webp)
+_Split-view editor with live markdown preview, file explorer on the left_
 
-### File Management
+### Markdown Preview with GitHub Styling
 
-- **File Explorer** - Organize notes in folders with tree view
-- **Drag & Drop** - Reorder files and folders by dragging
-- **Root-Level Files** - Create files outside folders at root level
-- **Rename & Delete** - Right-click context menu for file operations
-- **Nested Folders** - Support for hierarchical folder structure
+![Preview Mode](images/Preview.webp)
+_Beautiful rendered markdown with GitHub-style formatting_
 
-### UI/UX
+### File Explorer & Organization
 
-- **GitHub Dark Theme** - Beautiful dark theme matching GitHub's design
-- **Resizable Panels** - Drag to resize sidebar and editor/preview split
-- **Auto-hide UI** - Distraction-free writing mode
-- **View-only Mode** - Focus on reading without the editor
+![File Tree](images/Filetree.webp)
+_Hierarchical file and folder organization with drag-and-drop support_
 
-### Tools
+### Formatting Toolbar & Context Menu
 
-- **Print Support** - Print documents with light theme (Ctrl+P)
-- **Export/Import** - Backup and restore all your notes as JSON
-- **Help** - Built-in welcome guide with markdown examples
+![Formatting Tools](images/Toolbar.webp)
+_Comprehensive formatting options via toolbar and right-click context menu_
 
-## Screenshots
+### Help & Keyboard Shortcuts
 
-### Main Editor View
-
-![Editor View](images/screenshot.webp)
-
-### Preview Mode
-
-![Preview Mode](images/preview.webp)
-
-### Preview Mode w/ TOC
-
-![Preview Mode with TOC](images/tocmenu.webp)
+![Help Panel](images/help.webp)
+_Built-in help system with all keyboard shortcuts and markdown examples_
 
 ## Getting Started
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) (v18 or higher)
-- [pnpm](https://pnpm.io/) (recommended) or npm
+- [Node.js](https://nodejs.org/) v18 or higher
+- [pnpm](https://pnpm.io/) (recommended) or npm/yarn
+- Modern web browser with IndexedDB support
 
-### Installation
+### Quick Start
+
+---
+
+## 🚀 Getting Started
 
 ```bash
 # Clone the repository
@@ -120,14 +110,48 @@ pnpm build
 pnpm preview
 ```
 
-## Keyboard Shortcuts
+## ⌨️ Keyboard Shortcuts
 
-| Shortcut | Action   |
-| -------- | -------- |
-| `Ctrl+S` | Save now |
-| `Ctrl+B` | Bold     |
-| `Ctrl+I` | Italic   |
-| `Ctrl+P` | Print    |
+### Text Formatting
+
+| Shortcut       | Action                 |
+| -------------- | ---------------------- |
+| `Ctrl+B`       | **Bold** text          |
+| `Ctrl+I`       | _Italic_ text          |
+| Ctrl+`       | \`Inline code\`        |
+| `Ctrl+~` | ~~Strikethrough~~ text |
+| `Ctrl+Shift+.`   | Numbered list          |
+| `Ctrl+.`   | Bullet list            |
+| `Ctrl+Q`   | Block quote            |
+
+### Editor Control
+
+| Shortcut    | Action                            |
+| ----------- | --------------------------------- |
+| `Ctrl+H`    | **Show keyboard shortcuts panel** |
+| `Ctrl+F`    | **Find and replace**              |
+| `Ctrl+P`    | **Print document**                |
+| `Ctrl+S`    | Save now                          |
+| `Ctrl+/`    | Toggle comment                    |
+| `Tab`       | Indent line                       |
+| `Shift+Tab` | Outdent line                      |
+
+### View & Navigation
+
+| Shortcut       | Action                       |
+| -------------- | ---------------------------- |
+| `Ctrl+Shift+P` | Toggle preview mode          |
+| `Ctrl+Alt+D`   | Toggle distraction-free mode |
+| `Ctrl+0`       | Reset zoom                   |
+| `F11`          | Enter fullscreen             |
+
+### Multi-Select & Selection
+
+| Shortcut       | Action                 |
+| -------------- | ---------------------- |
+| `Ctrl+A`       | Select all             |
+| `Ctrl+D`       | Select next occurrence |
+| `Ctrl+Shift+L` | Select all occurrences |
 
 ## Tech Stack
 
@@ -221,21 +245,6 @@ SvelteMark works fully offline as a Progressive Web App (PWA).
 - Updates are applied automatically when you're back online
 - All data stays local - nothing is sent to servers even when online
 
-## Theming
-
-The application uses a GitHub-inspired dark theme with the following color palette:
-
-| Element    | Color     |
-| ---------- | --------- |
-| Background | `#0d1117` |
-| Surface    | `#161b22` |
-| Border     | `#30363d` |
-| Text       | `#c9d1d9` |
-| Muted      | `#8b949e` |
-| Accent     | `#58a6ff` |
-| Success    | `#3fb950` |
-| Warning    | `#d29922` |
-| Danger     | `#da3633` |
 
 ## Contributing
 

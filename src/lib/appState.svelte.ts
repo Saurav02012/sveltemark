@@ -225,16 +225,26 @@ async function saveNow(): Promise<void> {
 }
 
 async function newFolder(name: string, parentId: number | null = null): Promise<number> {
-    const id = await createFolder(name, parentId);
-    await refreshData();
-    return id;
+    try {
+        const id = await createFolder(name, parentId);
+        await refreshData();
+        return id;
+    } catch (error) {
+        console.error('Failed to create folder:', error);
+        throw error;
+    }
 }
 
 async function newFile(folderId: number | null, title: string): Promise<number> {
-    const id = await createFile(folderId, title, '');
-    await refreshData();
-    await selectFile(id);
-    return id;
+    try {
+        const id = await createFile(folderId, title, '');
+        await refreshData();
+        await selectFile(id);
+        return id;
+    } catch (error) {
+        console.error('Failed to create file:', error);
+        throw error;
+    }
 }
 
 async function removeFile(id: number): Promise<void> {
@@ -265,13 +275,23 @@ async function toggleFolder(id: number): Promise<void> {
 }
 
 async function renameFile(id: number, newTitle: string): Promise<void> {
-    await updateFileTitle(id, newTitle);
-    await refreshData();
+    try {
+        await updateFileTitle(id, newTitle);
+        await refreshData();
+    } catch (error) {
+        console.error('Failed to rename file:', error);
+        throw error;
+    }
 }
 
 async function renameFolder(id: number, newName: string): Promise<void> {
-    await updateFolderName(id, newName);
-    await refreshData();
+    try {
+        await updateFolderName(id, newName);
+        await refreshData();
+    } catch (error) {
+        console.error('Failed to rename folder:', error);
+        throw error;
+    }
 }
 
 async function moveFileToFolder(fileId: number, newFolderId: number | null): Promise<void> {

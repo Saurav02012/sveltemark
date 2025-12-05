@@ -32,10 +32,49 @@ db.version(1).stores({
 export { db };
 
 // Helper functions for database operations
+
+// Check if a folder name already exists in the same parent
+export async function folderNameExists(
+    name: string,
+    parentId: number | null,
+    excludeId?: number
+): Promise<boolean> {
+    const folders = await db.folders
+        .where('parentId')
+        .equals(parentId ?? null as any)
+        .toArray();
+
+    return folders.some(folder =>
+        folder.name === name && folder.id !== excludeId
+    );
+}
+
+// Check if a file name already exists in the same folder
+export async function fileNameExists(
+    title: string,
+    folderId: number | null,
+    excludeId?: number
+): Promise<boolean> {
+    const files = await db.files
+        .where('folderId')
+        .equals(folderId ?? null as any)
+        .toArray();
+
+    return files.some(file =>
+        file.title === title && file.id !== excludeId
+    );
+}
+
 export async function createFolder(
     name: string,
     parentId: number | null = null
 ): Promise<number> {
+    // Check for duplicate name
+    const exists = await folderNameExists(name, parentId);
+    if (exists) {
+        throw new Error(`A folder named "${name}" already exists in this location.`);
+    }
+
     const id = await db.folders.add({
         name,
         parentId,
@@ -49,6 +88,12 @@ export async function createFile(
     title: string,
     content: string = ''
 ): Promise<number> {
+    // Check for duplicate name
+    const exists = await fileNameExists(title, folderId);
+    if (exists) {
+        throw new Error(`A file named "${title}" already exists in this location.`);
+    }
+
     const now = new Date();
     const id = await db.files.add({
         folderId,
@@ -68,6 +113,18 @@ export async function updateFileContent(id: number, content: string): Promise<vo
 }
 
 export async function updateFileTitle(id: number, title: string): Promise<void> {
+    // Get the file to check its folder
+    const file = await db.files.get(id);
+    if (!file) {
+        throw new Error('File not found');
+    }
+
+    // Check for duplicate name (excluding current file)
+    const exists = await fileNameExists(title, file.folderId, id);
+    if (exists) {
+        throw new Error(`A file named "${title}" already exists in this location.`);
+    }
+
     await db.files.update(id, {
         title,
         updatedAt: new Date()
@@ -75,6 +132,18 @@ export async function updateFileTitle(id: number, title: string): Promise<void> 
 }
 
 export async function updateFolderName(id: number, name: string): Promise<void> {
+    // Get the folder to check its parent
+    const folder = await db.folders.get(id);
+    if (!folder) {
+        throw new Error('Folder not found');
+    }
+
+    // Check for duplicate name (excluding current folder)
+    const exists = await folderNameExists(name, folder.parentId, id);
+    if (exists) {
+        throw new Error(`A folder named "${name}" already exists in this location.`);
+    }
+
     await db.folders.update(id, { name });
 }
 
@@ -141,102 +210,92 @@ export async function getAllFiles(): Promise<File[]> {
 // Welcome content template
 export const WELCOME_CONTENT = `# Welcome to SvelteMark! 📝
 
-This is your **local-first** markdown editor with powerful features.
+**Your local-first, privacy-focused markdown editor** built with Svelte 5.
 
-## ✨ Features
-
-- 📂 **File Explorer** - Organize your notes in folders
-- 🖱️ **Drag & Drop** - Reorder files and folders by dragging
-- 📄 **Root-Level Files** - Create files at root or inside folders
-- ✍️ **Live Preview** - See your markdown rendered in real-time
-- ⚡ **Fine-Grained Updates** - Only changed blocks re-render for smooth typing
-- 🔄 **Auto-save** - Your work is automatically saved
-- 📊 **Mermaid Diagrams** - Create flowcharts and diagrams
-- 🧲 **Math Support** - Write equations with KaTeX
-- 📋 **Copy Code** - Click to copy code blocks
-- 🖨️ **Print** - Print your documents (Ctrl+P)
-- 💾 **Export/Import** - Backup and restore your notes
-- 👁️ **View-Only Mode** - Focus on reading
-- 🔲 **Auto-Hide UI** - Distraction-free writing
-- 📴 **Works Offline** - Full PWA support, no internet required
-
-## 📴 Offline Support
-
-SvelteMark works completely offline! After your first visit:
-
-- ✅ All app assets are cached locally
-- ✅ Your notes are stored in IndexedDB
-- ✅ No internet connection needed
-- ✅ Install as a desktop/mobile app
-
-**To install:** Click the install icon in your browser's address bar or "Add to Home Screen" on mobile.
-
-## ⌨️ Keyboard Shortcuts
-
-| Shortcut | Action |
-|----------|--------|
-| Ctrl+S | Save now |
-| Ctrl+B | Bold |
-| Ctrl+I | Italic |
-| Ctrl+P | Print |
-
-## 📝 Markdown Examples
-
-### Code Blocks
-
-\`\`\`javascript
-function greet(name) {
-  console.log(\`Hello, \${name}!\`);
-}
-\`\`\`
-
-\`\`\`python
-def fibonacci(n):
-    if n <= 1:
-        return n
-    return fibonacci(n-1) + fibonacci(n-2)
-\`\`\`
-
-### Math Equations
-
-Inline math: $E = mc^2$
-
-Block math:
-
-$$
-\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}
-$$
-
-### Mermaid Diagram
-
-\`\`\`mermaid
-graph TD
-    A[Start] --> B{Is it working?}
-    B -->|Yes| C[Great!]
-    B -->|No| D[Debug]
-    D --> B
-\`\`\`
-
-### Task Lists
-
-- [x] Create markdown editor
-- [x] Add live preview
-- [x] Support syntax highlighting
-- [x] Add offline support
-- [ ] Add more features
-
-### Blockquotes
-
-> "The best way to predict the future is to create it."
-> — Abraham Lincoln
+> 🔒 **100% Private** • 📴 **Works Offline** • 🚀 **Lightning Fast**
 
 ---
 
-**Tips:**
-- 🖱️ **Drag & drop** files and folders to reorganize them
-- 📂 **Drop to root** by dragging to the empty area at the bottom of the sidebar
-- 🔧 **Right-click** on files/folders to rename or delete them!
-- 📴 **Works offline** after first visit - install as an app!
+## ⚡ Key Features
+
+| Feature | Description |
+|---------|-------------|
+| 🔒 **Privacy First** | All data stored locally in IndexedDB, never leaves your device |
+| 📴 **Offline Ready** | Full PWA support - install as an app, works without internet |
+| ✏️ **Live Preview** | Real-time markdown rendering with GitHub styling |
+| 📐 **Math & Diagrams** | LaTeX equations (KaTeX) and Mermaid diagrams |
+| 🗂️ **File Management** | Organize with folders, drag & drop support |
+| 🎨 **GitHub Theme** | Beautiful dark interface matching GitHub's design |
+
+---
+
+## ⌨️ Keyboard Shortcuts
+
+### Text Formatting
+
+| Shortcut | Action |
+|----------|--------|
+| \`Ctrl+B\` | **Bold** |
+| \`Ctrl+I\` | *Italic* |
+| \`Ctrl+\`\` | \`Code\` |
+| \`Ctrl+~\` | ~~Strikethrough~~ |
+
+### Editor Control
+
+| Shortcut | Action |
+|----------|--------|
+| \`Ctrl+H\` | Show Help Panel |
+| \`Ctrl+F\` | Find & Replace |
+| \`Ctrl+P\` | Print Document |
+| \`Ctrl+S\` | Save Now |
+| \`Ctrl+/\` | Toggle Comment |
+
+### Selection
+
+| Shortcut | Action |
+|----------|--------|
+| \`Ctrl+D\` | Select Next |
+| \`Ctrl+Shift+L\` | Select All Occurrences |
+
+---
+
+## 🚀 Quick Examples
+
+### Code Block
+
+\`\`\`javascript
+console.log("Hello, SvelteMark!");
+\`\`\`
+
+### Math
+
+Inline: $E = mc^2$ | Block: $$\\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}$$
+
+### Diagram
+
+\`\`\`mermaid
+graph LR
+    A[Write] --> B[Preview] --> C[Save]
+\`\`\`
+
+### Task List
+
+- [x] Local storage
+- [x] Offline support
+- [ ] More features
+
+---
+
+## 💡 Tips
+
+- 🖱️ **Right-click** for context menu formatting options
+- 📂 **Drag & drop** to reorganize files and folders
+- 💾 **Export** your notes as JSON backup anytime
+- 📴 **Install** as an app for offline access
+
+---
+
+**Open Source** on [GitHub](https://github.com/MasFana/sveltemarkdown) • MIT License
 
 Happy writing! 🚀
 `;

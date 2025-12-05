@@ -10,6 +10,11 @@
 		onDragEnd?: () => void;
 		dragOverItem?: FileTreeItem | null;
 		setDragOverItem?: (item: FileTreeItem | null) => void;
+		parentFolderId?: number | null;
+		sharedCreatingType?: { value: 'file' | 'folder' | null };
+		sharedCreatingInFolder?: { value: number | null };
+		sharedCreateValue?: { value: string };
+		sharedCreateInputRef?: { value: HTMLInputElement | null };
 	}
 
 	let { 
@@ -18,20 +23,62 @@
 		onDragStart: parentDragStart,
 		onDragEnd: parentDragEnd,
 		dragOverItem: parentDragOverItem,
-		setDragOverItem: parentSetDragOverItem
+		setDragOverItem: parentSetDragOverItem,
+		parentFolderId = null,
+		sharedCreatingType,
+		sharedCreatingInFolder,
+		sharedCreateValue,
+		sharedCreateInputRef
 	}: Props = $props();
 
 	// Context menu and rename state
-	let contextMenu = $state<{ x: number; y: number; item: FileTreeItem } | null>(null);
+	let contextMenu = $state<{ x: number; y: number; item: FileTreeItem | null } | null>(null);
 	let renamingItem = $state<FileTreeItem | null>(null);
 	let renameValue = $state<string>('');
+	
+	// Creation state (like VS Code's inline creation)
+	// At root level, create local state, otherwise use shared state
+	const isRoot = depth === 0;
+	let localCreatingType = $state<'file' | 'folder' | null>(null);
+	let localCreatingInFolder = $state<number | null>(null);
+	let localCreateValue = $state<string>('');
+	let localCreateInputRef = $state<HTMLInputElement | null>(null);
+
+	// Use shared state if provided (for nested components), otherwise use local state
+	const creatingTypeObj = $derived(isRoot ? { value: localCreatingType } : sharedCreatingType!);
+	const creatingInFolderObj = $derived(isRoot ? { value: localCreatingInFolder } : sharedCreatingInFolder!);
+	const createValueObj = $derived(isRoot ? { value: localCreateValue } : sharedCreateValue!);
+	const createInputRefObj = $derived(isRoot ? { value: localCreateInputRef } : sharedCreateInputRef!);
+
+	let creatingType = $derived.by(() => creatingTypeObj.value);
+	let creatingInFolder = $derived.by(() => creatingInFolderObj.value);
+	let createValue = $derived.by(() => createValueObj.value);
+	let createInputRef = $derived.by(() => createInputRefObj.value);
+	
+	// Svelte action to focus input and store ref
+	function focusInput(node: HTMLInputElement) {
+		setCreateInputRef(node);
+		node.focus();
+		node.select();
+		return {
+			destroy() {
+				setCreateInputRef(null);
+			}
+		};
+	}
+
+	// Expose method for external components (like Sidebar buttons) to trigger creation
+	export function startCreatingFromExternal(type: 'file' | 'folder', folderId: number | null = null) {
+		if (isRoot) {
+			startCreating(type, folderId);
+		}
+	}
 
 	// Drag and drop state (only manage at root level)
 	let draggingItem = $state<FileTreeItem | null>(null);
 	let localDragOverItem = $state<FileTreeItem | null>(null);
 
 	// Use parent's drag state if provided, otherwise use local state
-	const isRoot = depth === 0;
 	const dragOverItem = $derived(isRoot ? localDragOverItem : parentDragOverItem);
 
 	function setDragOverItem(item: FileTreeItem | null) {
@@ -58,7 +105,7 @@
 		}
 	}
 
-	function handleContextMenu(event: MouseEvent, item: FileTreeItem) {
+	function handleContextMenu(event: MouseEvent, item: FileTreeItem | null = null) {
 		event.preventDefault();
 		event.stopPropagation();
 		contextMenu = { x: event.clientX, y: event.clientY, item };
@@ -80,12 +127,20 @@
 			return;
 		}
 
-		if (renamingItem.type === 'file') {
-			await appState.renameFile(renamingItem.id, renameValue.trim());
-		} else {
-			await appState.renameFolder(renamingItem.id, renameValue.trim());
+		try {
+			if (renamingItem.type === 'file') {
+				await appState.renameFile(renamingItem.id, renameValue.trim());
+			} else {
+				await appState.renameFolder(renamingItem.id, renameValue.trim());
+			}
+			renamingItem = null;
+		} catch (error) {
+			// Show error to user
+			if (error instanceof Error) {
+				alert(error.message);
+			}
+			// Keep the input open so user can correct
 		}
-		renamingItem = null;
 	}
 
 	function handleRenameKeydown(event: KeyboardEvent) {
@@ -110,6 +165,87 @@
 			}
 		}
 		closeContextMenu();
+	}
+
+	// Handle creating new file/folder (VS Code style)
+	async function startCreating(type: 'file' | 'folder', folderId: number | null = null) {
+		creatingTypeObj.value = type;
+		creatingInFolderObj.value = folderId;
+		createValueObj.value = '';
+		closeContextMenu();
+		
+		// If creating in a folder, make sure it's open
+		if (folderId !== null) {
+			const folder = items.find(f => f.id === folderId && f.type === 'folder');
+			if (folder && !folder.isOpen) {
+				await appState.toggleFolder(folderId);
+			}
+		}
+		
+		// Focus the input after it's rendered
+		setTimeout(() => {
+			const inputRef = createInputRefObj.value;
+			if (inputRef) {
+				inputRef.focus();
+			}
+		}, 0);
+	}
+
+	async function submitCreate() {
+		const type = creatingTypeObj.value;
+		const value = createValueObj.value;
+		const folderId = creatingInFolderObj.value;
+		
+		if (!type || !value.trim()) {
+			cancelCreate();
+			return;
+		}
+
+		try {
+			if (type === 'file') {
+				await appState.newFile(folderId, value.trim());
+			} else {
+				const newId = await appState.newFolder(value.trim(), folderId);
+				// Open the parent folder if needed
+				if (folderId !== null) {
+					const folder = appState.fileTree.find(f => f.id === folderId);
+					if (folder && !folder.isOpen) {
+						await appState.toggleFolder(folderId);
+					}
+				}
+			}
+			cancelCreate();
+		} catch (error) {
+			// Show error to user
+			if (error instanceof Error) {
+				alert(error.message);
+			}
+			// Keep the input open so user can correct
+		}
+	}
+
+	function cancelCreate() {
+		creatingTypeObj.value = null;
+		creatingInFolderObj.value = null;
+		createValueObj.value = '';
+		createInputRefObj.value = null;
+	}
+
+	function handleCreateKeydown(event: KeyboardEvent) {
+		if (event.key === 'Enter') {
+			event.preventDefault();
+			submitCreate();
+		} else if (event.key === 'Escape') {
+			cancelCreate();
+		}
+	}
+	
+	function updateCreateValue(value: string) {
+		createValueObj.value = value;
+	}
+	
+	function setCreateInputRef(ref: HTMLInputElement | null) {
+		createInputRefObj.value = ref;
 	}
 
 	// Drag and Drop handlers
@@ -220,6 +356,46 @@
 <svelte:window onclick={handleWindowClick} />
 
 <ul class="file-tree" style="--depth: {depth}">
+	<!-- Root level context menu trigger (only at depth 0) -->
+	{#if depth === 0}
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div 
+			class="root-context-trigger"
+			oncontextmenu={(e) => handleContextMenu(e, null)}
+		></div>
+	{/if}
+	
+	<!-- Show creation input at root level if creating at root -->
+	{#if depth === 0 && creatingType !== null && creatingInFolder === null}
+		<li class="tree-item creating">
+			<div class="tree-button creating-input">
+				<span class="icon">
+					{#if creatingType === 'folder'}
+						<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+							<path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
+						</svg>
+					{:else}
+						<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+							<path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
+						</svg>
+					{/if}
+				</span>
+				<!-- svelte-ignore a11y_autofocus -->
+				<input
+					type="text"
+					class="create-input"
+					placeholder={creatingType === 'folder' ? 'Folder name...' : 'File name...'}
+					value={createValue}
+					oninput={(e) => updateCreateValue(e.currentTarget.value)}
+					onkeydown={handleCreateKeydown}
+					onblur={submitCreate}
+					use:focusInput
+					autofocus
+				/>
+			</div>
+		</li>
+	{/if}
+	
 	{#each items as item (item.id)}
 		<li class="tree-item">
 			<button
@@ -241,17 +417,17 @@
 				<span class="icon">
 					{#if item.type === 'folder'}
 						{#if item.isOpen}
-							<svg viewBox="0 0 16 16" fill="currentColor" width="16" height="16">
-								<path d="M1.5 14.25V1.75A.75.75 0 012.25 1H6.5l1 1h6.25a.75.75 0 01.75.75v11.5a.75.75 0 01-.75.75H2.25a.75.75 0 01-.75-.75zM3 3v10.5h10V3.5H7.19l-1-1H3z"/>
+							<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+								<path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"/>
 							</svg>
 						{:else}
-							<svg viewBox="0 0 16 16" fill="currentColor" width="16" height="16">
-								<path d="M1.75 1A.75.75 0 001 1.75v12.5c0 .414.336.75.75.75h12.5a.75.75 0 00.75-.75V3.75a.75.75 0 00-.75-.75H7.5L6.5 2H1.75zM2.5 4h11v9.5h-11V4z"/>
+							<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+								<path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
 							</svg>
 						{/if}
 					{:else}
-						<svg viewBox="0 0 16 16" fill="currentColor" width="16" height="16">
-							<path d="M1.75 1h8.5c.966 0 1.75.784 1.75 1.75v11.5A1.75 1.75 0 0110.25 16h-8.5A1.75 1.75 0 010 14.25V2.75C0 1.784.784 1 1.75 1zm0 1.5a.25.25 0 00-.25.25v11.5c0 .138.112.25.25.25h8.5a.25.25 0 00.25-.25V2.75a.25.25 0 00-.25-.25h-8.5z"/>
+						<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+							<path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
 						</svg>
 					{/if}
 				</span>
@@ -270,35 +446,75 @@
 				{/if}
 				{#if item.type === 'folder'}
 					<span class="chevron" class:open={item.isOpen}>
-						<svg viewBox="0 0 16 16" fill="currentColor" width="12" height="12">
-							<path d="M6.22 3.22a.75.75 0 011.06 0l4.25 4.25a.75.75 0 010 1.06l-4.25 4.25a.75.75 0 01-1.06-1.06L9.94 8 6.22 4.28a.75.75 0 010-1.06z"/>
+						<svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12">
+							<path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/>
 						</svg>
 					</span>
 				{/if}
 			</button>
 
-			{#if item.type === 'folder' && item.isOpen && item.children && item.children.length > 0}
-				<FileTree 
-					items={item.children} 
-					depth={depth + 1}
-					onDragStart={(dragItem, event) => {
-						if (isRoot) {
-							draggingItem = dragItem;
-						} else if (parentDragStart) {
-							parentDragStart(dragItem, event);
-						}
-					}}
-					onDragEnd={() => {
-						if (isRoot) {
-							draggingItem = null;
-							localDragOverItem = null;
-						} else if (parentDragEnd) {
-							parentDragEnd();
-						}
-					}}
-					dragOverItem={isRoot ? localDragOverItem : parentDragOverItem}
-					setDragOverItem={setDragOverItem}
-				/>
+			{#if item.type === 'folder' && item.isOpen}
+				<!-- Show creation input inside folder if creating in this folder -->
+				{#if creatingType !== null && creatingInFolder === item.id}
+					<ul class="file-tree" style="--depth: {depth + 1}">
+						<li class="tree-item creating">
+							<div class="tree-button creating-input">
+								<span class="icon">
+									{#if creatingType === 'folder'}
+										<svg viewBox="0 0 16 16" fill="currentColor" width="16" height="16">
+											<path d="M1.75 1A.75.75 0 001 1.75v12.5c0 .414.336.75.75.75h12.5a.75.75 0 00.75-.75V3.75a.75.75 0 00-.75-.75H7.5L6.5 2H1.75zM2.5 4h11v9.5h-11V4z"/>
+										</svg>
+									{:else}
+										<svg viewBox="0 0 16 16" fill="currentColor" width="16" height="16">
+											<path d="M1.75 1h8.5c.966 0 1.75.784 1.75 1.75v11.5A1.75 1.75 0 0110.25 16h-8.5A1.75 1.75 0 010 14.25V2.75C0 1.784.784 1 1.75 1zm0 1.5a.25.25 0 00-.25.25v11.5c0 .138.112.25.25.25h8.5a.25.25 0 00.25-.25V2.75a.25.25 0 00-.25-.25h-8.5z"/>
+										</svg>
+									{/if}
+								</span>
+								<!-- svelte-ignore a11y_autofocus -->
+								<input
+									type="text"
+									class="create-input"
+									placeholder={creatingType === 'folder' ? 'Folder name...' : 'File name...'}
+									value={createValue}
+									oninput={(e) => updateCreateValue(e.currentTarget.value)}
+									onkeydown={handleCreateKeydown}
+									onblur={submitCreate}
+									use:focusInput
+									autofocus
+								/>
+							</div>
+						</li>
+					</ul>
+				{/if}
+				
+				{#if item.children && item.children.length > 0}
+					<FileTree 
+						items={item.children} 
+						depth={depth + 1}
+						parentFolderId={item.id}
+						onDragStart={(dragItem, event) => {
+							if (isRoot) {
+								draggingItem = dragItem;
+							} else if (parentDragStart) {
+								parentDragStart(dragItem, event);
+							}
+						}}
+						onDragEnd={() => {
+							if (isRoot) {
+								draggingItem = null;
+								localDragOverItem = null;
+							} else if (parentDragEnd) {
+								parentDragEnd();
+							}
+						}}
+						dragOverItem={isRoot ? localDragOverItem : parentDragOverItem}
+						setDragOverItem={setDragOverItem}
+						sharedCreatingType={creatingTypeObj}
+						sharedCreatingInFolder={creatingInFolderObj}
+						sharedCreateValue={createValueObj}
+						sharedCreateInputRef={createInputRefObj}
+					/>
+				{/if}
 			{/if}
 		</li>
 	{/each}
@@ -310,18 +526,65 @@
 		class="context-menu"
 		style="left: {contextMenu.x}px; top: {contextMenu.y}px"
 	>
-		<button class="context-item" onclick={() => handleRename(contextMenu!.item)}>
-			<svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14">
-				<path d="M11.013 1.427a1.75 1.75 0 012.474 0l1.086 1.086a1.75 1.75 0 010 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 01-.927-.928l.929-3.25a1.75 1.75 0 01.445-.758l8.61-8.61zm1.414 1.06a.25.25 0 00-.354 0L3.46 11.1a.25.25 0 00-.064.108l-.457 1.6 1.6-.457a.25.25 0 00.108-.064l8.61-8.61a.25.25 0 000-.354l-1.086-1.086z"/>
-			</svg>
-			Rename
-		</button>
-		<button class="context-item danger" onclick={() => handleDelete(contextMenu!.item)}>
-			<svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14">
-				<path d="M11 1.75V3h2.25a.75.75 0 010 1.5H2.75a.75.75 0 010-1.5H5V1.75C5 .784 5.784 0 6.75 0h2.5C10.216 0 11 .784 11 1.75zM4.496 6.675a.75.75 0 10-1.492.15l.66 6.6A1.75 1.75 0 005.405 15h5.19c.9 0 1.652-.681 1.741-1.576l.66-6.6a.75.75 0 00-1.492-.149l-.66 6.6a.25.25 0 01-.249.225h-5.19a.25.25 0 01-.249-.225l-.66-6.6z"/>
-			</svg>
-			Delete
-		</button>
+		{#if contextMenu.item === null}
+			<!-- Root context menu -->
+			<button class="context-item" onclick={() => startCreating('file', null)}>
+				<svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
+					<path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/>
+				</svg>
+				New File
+			</button>
+			<button class="context-item" onclick={() => startCreating('folder', null)}>
+				<svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
+					<path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
+				</svg>
+				New Folder
+			</button>
+		{:else}
+			<!-- Item context menu -->
+			{#if contextMenu.item.type === 'file'}
+				<!-- For files, show rename and delete at top -->
+				<button class="context-item" onclick={() => handleRename(contextMenu!.item!)}>
+					<svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
+						<path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+					</svg>
+					Rename
+				</button>
+				<button class="context-item danger" onclick={() => handleDelete(contextMenu!.item!)}>
+					<svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
+						<path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+					</svg>
+					Delete
+				</button>
+			{:else if contextMenu.item.type === 'folder'}
+				<!-- For folders, show creation options first, then rename/delete -->
+				<button class="context-item" onclick={() => startCreating('file', contextMenu!.item!.id)}>
+					<svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
+						<path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/>
+					</svg>
+					New File
+				</button>
+				<button class="context-item" onclick={() => startCreating('folder', contextMenu!.item!.id)}>
+					<svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
+						<path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
+					</svg>
+					New Folder
+				</button>
+				<div class="context-separator"></div>
+				<button class="context-item" onclick={() => handleRename(contextMenu!.item!)}>
+					<svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
+						<path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+					</svg>
+					Rename
+				</button>
+				<button class="context-item danger" onclick={() => handleDelete(contextMenu!.item!)}>
+					<svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
+						<path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+					</svg>
+					Delete
+				</button>
+			{/if}
+		{/if}
 	</div>
 {/if}
 
@@ -415,7 +678,8 @@
 		transform: rotate(90deg);
 	}
 
-	.rename-input {
+	.rename-input,
+	.create-input {
 		flex: 1;
 		background: #0d1117;
 		border: 1px solid #58a6ff;
@@ -427,6 +691,29 @@
 		outline: none;
 		min-width: 0;
 		box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.2);
+	}
+
+	.creating-input {
+		background: transparent;
+		cursor: default;
+	}
+
+	.creating-input:hover {
+		background: transparent;
+	}
+
+	.tree-item.creating {
+		margin: 2px 0;
+	}
+
+	.root-context-trigger {
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		pointer-events: auto;
+		z-index: -1;
 	}
 
 	.context-menu {
@@ -466,5 +753,11 @@
 
 	.context-item svg {
 		flex-shrink: 0;
+	}
+
+	.context-separator {
+		height: 1px;
+		background: #30363d;
+		margin: 4px 0;
 	}
 </style>

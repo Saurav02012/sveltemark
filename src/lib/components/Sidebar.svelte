@@ -2,38 +2,19 @@
 	import { appState } from '$lib/appState.svelte';
 	import FileTree from './FileTree.svelte';
 
-	let newItemName = $state('');
-	let showNewFolder = $state(false);
-	let showNewFile = $state(false);
-	let selectedFolderId = $state<number | null>(null);
 	let isDragOverRoot = $state(false);
+	let fileTreeRef = $state<any>(null);
 
-	async function handleCreateFolder() {
-		if (!newItemName.trim()) return;
-		await appState.newFolder(newItemName.trim(), selectedFolderId);
-		newItemName = '';
-		showNewFolder = false;
+	// Trigger new file/folder creation in the FileTree component
+	function handleNewFile() {
+		if (fileTreeRef?.startCreatingFromExternal) {
+			fileTreeRef.startCreatingFromExternal('file', null);
+		}
 	}
 
-	async function handleCreateFile() {
-		if (!newItemName.trim()) return;
-		// Create file at root level if no folder selected, or in selected folder
-		await appState.newFile(selectedFolderId, newItemName.trim());
-		newItemName = '';
-		showNewFile = false;
-	}
-
-	function handleKeydown(event: KeyboardEvent, action: 'folder' | 'file') {
-		if (event.key === 'Enter') {
-			if (action === 'folder') {
-				handleCreateFolder();
-			} else {
-				handleCreateFile();
-			}
-		} else if (event.key === 'Escape') {
-			newItemName = '';
-			showNewFolder = false;
-			showNewFile = false;
+	function handleNewFolder() {
+		if (fileTreeRef?.startCreatingFromExternal) {
+			fileTreeRef.startCreatingFromExternal('folder', null);
 		}
 	}
 
@@ -96,54 +77,24 @@
 		<div class="actions">
 			<button
 				class="action-btn"
-				title="New File"
-				onclick={() => {
-					showNewFile = true;
-					showNewFolder = false;
-				}}
+				title="New File..."
+				onclick={handleNewFile}
 			>
-				<svg viewBox="0 0 16 16" fill="currentColor" width="16" height="16">
-					<path d="M9.5 1.75V7h5.25a.75.75 0 010 1.5H9.5v5.25a.75.75 0 01-1.5 0V8.5H2.75a.75.75 0 010-1.5H8V1.75a.75.75 0 011.5 0z"/>
+				<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+					<path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/>
 				</svg>
 			</button>
 			<button
 				class="action-btn"
-				title="New Folder"
-				onclick={() => {
-					showNewFolder = true;
-					showNewFile = false;
-				}}
+				title="New Folder..."
+				onclick={handleNewFolder}
 			>
-				<svg viewBox="0 0 16 16" fill="currentColor" width="16" height="16">
-					<path d="M7.5 3.5v-2h-6v13h13v-11h-7zm.5-3l.5.5h7l.5.5v12l-.5.5H1L.5 13V1L1 .5h7zm3.5 7H9V5h-1v2.5H5.5v1H8V11h1V8.5h2.5v-1z"/>
+				<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+					<path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
 				</svg>
 			</button>
 		</div>
 	</div>
-
-	{#if showNewFolder}
-		<div class="new-item-input">
-			<input
-				type="text"
-				placeholder="Folder name..."
-				bind:value={newItemName}
-				onkeydown={(e) => handleKeydown(e, 'folder')}
-			/>
-			<button onclick={handleCreateFolder}>Create</button>
-		</div>
-	{/if}
-
-	{#if showNewFile}
-		<div class="new-item-input">
-			<input
-				type="text"
-				placeholder="File name..."
-				bind:value={newItemName}
-				onkeydown={(e) => handleKeydown(e, 'file')}
-			/>
-			<button onclick={handleCreateFile}>Create</button>
-		</div>
-	{/if}
 
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div 
@@ -153,19 +104,36 @@
 		ondragleave={handleRootDragLeave}
 		ondrop={handleRootDrop}
 	>
-		<FileTree items={appState.fileTree} />
-		{#if appState.fileTree.length === 0}
-			<div class="empty-state">
-				<p>No files yet</p>
-				<p class="hint">Create a file or folder to get started</p>
+		<div class="scrollable-content">
+			<FileTree bind:this={fileTreeRef} items={appState.fileTree} />
+			{#if appState.fileTree.length === 0}
+				<div class="empty-state">
+					<p>No files yet</p>
+					<p class="hint">Create a file or folder to get started</p>
+				</div>
+			{/if}
+			<div 
+				class="root-drop-zone"
+				class:visible={isDragOverRoot}
+			>
+				Drop here to move to root
 			</div>
-		{/if}
-		<div 
-			class="root-drop-zone"
-			class:visible={isDragOverRoot}
-		>
-			Drop here to move to root
 		</div>
+	</div>
+
+	<div class="sidebar-footer">
+		<a 
+			href="https://github.com/MasFana/sveltemark" 
+			target="_blank" 
+			rel="noopener noreferrer"
+			class="github-link"
+			title="Star on GitHub"
+		>
+			<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+				<path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+			</svg>
+			<span>Star on GitHub</span>
+		</a>
 	</div>
 </aside>
 
@@ -205,71 +173,45 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		width: 24px;
-		height: 24px;
+		width: 22px;
+		height: 22px;
 		border: none;
 		background: transparent;
 		color: #c9d1d9;
 		cursor: pointer;
 		border-radius: 4px;
 		transition: background-color 0.15s;
+		padding: 0;
 	}
 
 	.action-btn:hover {
 		background: #21262d;
 	}
 
-	.new-item-input {
-		display: flex;
-		gap: 4px;
-		padding: 8px;
-		border-bottom: 1px solid #30363d;
-	}
-
-	.new-item-input input {
-		flex: 1;
-		padding: 4px 8px;
-		border: 1px solid #30363d;
-		border-radius: 6px;
-		background: #0d1117;
-		color: #c9d1d9;
-		font-size: 13px;
-	}
-
-	.new-item-input input:focus {
-		outline: none;
-		border-color: #58a6ff;
-		box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.2);
-	}
-
-	.new-item-input button {
-		padding: 4px 12px;
-		border: none;
-		border-radius: 6px;
-		background: #238636;
-		color: #ffffff;
-		font-size: 12px;
-		font-weight: 500;
-		cursor: pointer;
-		transition: background-color 0.15s;
-	}
-
-	.new-item-input button:hover {
-		background: #2ea043;
+	.action-btn svg {
+		width: 16px;
+		height: 16px;
 	}
 
 	.file-tree-container {
 		flex: 1;
+		overflow: hidden;
+		background: #161b22;
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		min-height: 0;
+	}
+
+	.scrollable-content {
+		flex: 1;
 		overflow-y: auto;
 		overflow-x: hidden;
 		padding: 8px;
-		min-height: 0;
-		background: #161b22;
-		position: relative;
 		transition: background-color 0.15s;
 	}
 
-	.file-tree-container.drag-over-root {
+	.file-tree-container.drag-over-root .scrollable-content {
 		background: #1a3a5c;
 	}
 
@@ -313,5 +255,46 @@
 	.root-drop-zone.visible {
 		opacity: 1;
 		pointer-events: auto;
+	}
+
+	.sidebar-footer {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 8px 12px;
+		height: 41px;
+		min-height: 41px;
+		border-top: 1px solid #30363d;
+		background: #161b22;
+		box-sizing: border-box;
+	}
+
+	.github-link {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		padding: 6px 12px;
+		background: #21262d;
+		color: #c9d1d9;
+		border: 1px solid #30363d;
+		border-radius: 6px;
+		text-decoration: none;
+		font-size: 12px;
+		font-weight: 500;
+		cursor: pointer;
+		transition: all 0.15s;
+		white-space: nowrap;
+	}
+
+	.github-link:hover {
+		background: #30363d;
+		border-color: #58a6ff;
+		color: #58a6ff;
+	}
+
+	.github-link svg {
+		width: 16px;
+		height: 16px;
+		flex-shrink: 0;
 	}
 </style>
