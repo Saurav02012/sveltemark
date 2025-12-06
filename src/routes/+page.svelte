@@ -1064,6 +1064,8 @@
 
 	:global(*) {
 		box-sizing: border-box;
+		scroll-behavior: smooth;
+
 	}
 
 	/* GitHub dark scrollbar */
