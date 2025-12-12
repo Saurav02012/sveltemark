@@ -825,8 +825,19 @@ And much more!</code
 
 <!-- Image Modal -->
 {#if modalImage}
-	<div class="modal-overlay" onclick={closeModal} role="dialog" aria-modal="true">
-		<div class="modal-content" onclick={(e) => e.stopPropagation()}>
+	<div
+		class="modal-overlay"
+		onclick={closeModal}
+		onkeydown={(e) => e.key === 'Escape' && closeModal()}
+		role="dialog"
+		aria-modal="true"
+		tabindex="-1"
+	>
+		<div
+			class="modal-content"
+	
+			role="document"
+		>
 			<button type="button" class="modal-close" onclick={closeModal} aria-label="Close modal">
 				✕
 			</button>
@@ -1548,8 +1559,10 @@ And much more!</code
 
 	.editor-mockup:hover {
 		transform: translateY(-4px);
-		box-shadow: 0 24px 70px rgba(0, 0, 0, 0.5);
-		border-color: var(--orange-primary);
+		box-shadow:
+			0 24px 70px rgba(0, 0, 0, 0.5),
+			0 0 40px rgba(255, 107, 53, 0.5),
+			0 0 80px rgba(255, 107, 53, 0.3);
 	}
 
 	.mockup-header {
