@@ -25,8 +25,8 @@
 		setSharedState?: (updates: Partial<Props['sharedState']>) => void;
 	}
 
-	let { 
-		items, 
+	let {
+		items,
 		depth = 0,
 		onDragStart: parentDragStart,
 		onDragEnd: parentDragEnd,
@@ -39,11 +39,11 @@
 
 	// Context menu state
 	let contextMenu = $state<{ x: number; y: number; item: FileTreeItem | null } | null>(null);
-	
+
 	// Creation and rename state (shared across tree)
 	// At root level, create local state, otherwise use shared state
 	const isRoot = depth === 0;
-	
+
 	// Local state for root level
 	let localCreatingType = $state<'file' | 'folder' | null>(null);
 	let localCreatingInFolder = $state<number | null>(null);
@@ -53,12 +53,16 @@
 	let localRenameValue = $state<string>('');
 
 	// Getters for state values
-	const creatingType = $derived(isRoot ? localCreatingType : sharedState?.creatingType ?? null);
-	const creatingInFolder = $derived(isRoot ? localCreatingInFolder : sharedState?.creatingInFolder ?? null);
-	const createValue = $derived(isRoot ? localCreateValue : sharedState?.createValue ?? '');
-	const createInputRef = $derived(isRoot ? localCreateInputRef : sharedState?.createInputRef ?? null);
-	const renamingItem = $derived(isRoot ? localRenamingItem : sharedState?.renamingItem ?? null);
-	const renameValue = $derived(isRoot ? localRenameValue : sharedState?.renameValue ?? '');
+	const creatingType = $derived(isRoot ? localCreatingType : (sharedState?.creatingType ?? null));
+	const creatingInFolder = $derived(
+		isRoot ? localCreatingInFolder : (sharedState?.creatingInFolder ?? null)
+	);
+	const createValue = $derived(isRoot ? localCreateValue : (sharedState?.createValue ?? ''));
+	const createInputRef = $derived(
+		isRoot ? localCreateInputRef : (sharedState?.createInputRef ?? null)
+	);
+	const renamingItem = $derived(isRoot ? localRenamingItem : (sharedState?.renamingItem ?? null));
+	const renameValue = $derived(isRoot ? localRenameValue : (sharedState?.renameValue ?? ''));
 
 	// Setters for state values
 	function setCreatingType(value: 'file' | 'folder' | null) {
@@ -85,7 +89,7 @@
 		if (isRoot) localRenameValue = value;
 		else setSharedState?.({ renameValue: value });
 	}
-	
+
 	// Create shared state object to pass to children
 	const childSharedState = $derived({
 		creatingType: localCreatingType,
@@ -95,7 +99,7 @@
 		renamingItem: localRenamingItem,
 		renameValue: localRenameValue
 	});
-	
+
 	function handleSetSharedState(updates: Partial<Props['sharedState']>) {
 		if (!updates) return;
 		if (updates.creatingType !== undefined) localCreatingType = updates.creatingType;
@@ -105,7 +109,7 @@
 		if (updates.renamingItem !== undefined) localRenamingItem = updates.renamingItem;
 		if (updates.renameValue !== undefined) localRenameValue = updates.renameValue;
 	}
-	
+
 	// Svelte action to focus input and store ref
 	function focusInput(node: HTMLInputElement) {
 		setCreateInputRef(node);
@@ -117,7 +121,7 @@
 			}
 		};
 	}
-	
+
 	// Svelte action to focus rename input
 	function focusRenameInput(node: HTMLInputElement) {
 		node.focus();
@@ -134,18 +138,21 @@
 
 	// Expose method for external components (like Sidebar buttons) to trigger creation
 	// Creates in the same folder as the currently active file (VS Code style - instant create + rename)
-	export async function startCreatingFromExternal(type: 'file' | 'folder', folderId: number | null = null) {
+	export async function startCreatingFromExternal(
+		type: 'file' | 'folder',
+		folderId: number | null = null
+	) {
 		if (isRoot) {
 			// If no folderId provided, use the active file's folder
 			const targetFolderId = folderId ?? appState.activeFileFolderId;
 			await createAndRename(type, targetFolderId);
 		}
 	}
-	
+
 	// VS Code style: Create immediately with default name, then enter rename mode
 	async function createAndRename(type: 'file' | 'folder', folderId: number | null = null) {
 		closeContextMenu();
-		
+
 		// If creating in a folder, make sure it's open
 		if (folderId !== null) {
 			// Find folder in the tree recursively
@@ -164,28 +171,28 @@
 				await appState.toggleFolder(folderId);
 			}
 		}
-		
+
 		try {
 			let newItemId: number;
 			let newItemName: string;
-			
+
 			if (type === 'file') {
 				// Create file with default name without .md (autoRename handles duplicates)
 				newItemId = await appState.newFile(folderId, 'New File');
 				// Get the actual name (might be "New File 1" etc)
-				const newFile = appState.files.find(f => f.id === newItemId);
+				const newFile = appState.files.find((f) => f.id === newItemId);
 				newItemName = newFile?.title ?? 'New File';
 			} else {
 				// Create folder with default name (autoRename handles duplicates)
 				newItemId = await appState.newFolder('New Folder', folderId);
 				// Get the actual name (might be "New Folder 1" etc)
-				const newFolder = appState.folders.find(f => f.id === newItemId);
+				const newFolder = appState.folders.find((f) => f.id === newItemId);
 				newItemName = newFolder?.name ?? 'New Folder';
 			}
-			
+
 			// Wait for DOM to update after state changes
 			await tick();
-			
+
 			// Enter rename mode for the newly created item
 			// Use direct local state setter at root level for reliability
 			if (isRoot) {
@@ -287,18 +294,18 @@
 		try {
 			const zip = new JSZip();
 			let fileCount = 0;
-			
+
 			// Recursively add files to ZIP
 			async function addFilesToZip(folderId: number | null, zipFolder: JSZip) {
 				// Get files in current folder
 				// Dexie doesn't support null as index value, so filter manually
 				let files;
 				if (folderId === null) {
-					files = await db.files.filter(f => f.folderId === null).toArray();
+					files = await db.files.filter((f) => f.folderId === null).toArray();
 				} else {
 					files = await db.files.where('folderId').equals(folderId).toArray();
 				}
-				
+
 				for (const file of files) {
 					zipFolder.file(`${file.title}.md`, file.content);
 					fileCount++;
@@ -308,11 +315,11 @@
 				// Dexie doesn't support null as index value, so filter manually
 				let subfolders;
 				if (folderId === null) {
-					subfolders = await db.folders.filter(f => f.parentId === null).toArray();
+					subfolders = await db.folders.filter((f) => f.parentId === null).toArray();
 				} else {
 					subfolders = await db.folders.where('parentId').equals(folderId).toArray();
 				}
-				
+
 				for (const subfolder of subfolders) {
 					if (subfolder.id !== undefined) {
 						// Create subfolder in ZIP
@@ -353,7 +360,7 @@
 	async function submitRename() {
 		const currentRenamingItem = renamingItem;
 		const currentRenameValue = renameValue;
-		
+
 		if (!currentRenamingItem || !currentRenameValue.trim()) {
 			setRenamingItem(null);
 			return;
@@ -389,10 +396,11 @@
 	}
 
 	async function handleDelete(item: FileTreeItem) {
-		const confirmMsg = item.type === 'folder' 
-			? `Delete folder "${item.name}" and all its contents?`
-			: `Delete file "${item.name}"?`;
-		
+		const confirmMsg =
+			item.type === 'folder'
+				? `Delete folder "${item.name}" and all its contents?`
+				: `Delete file "${item.name}"?`;
+
 		if (confirm(confirmMsg)) {
 			if (item.type === 'file') {
 				await appState.removeFile(item.id);
@@ -409,15 +417,15 @@
 		setCreatingInFolder(folderId);
 		setCreateValue('');
 		closeContextMenu();
-		
+
 		// If creating in a folder, make sure it's open
 		if (folderId !== null) {
-			const folder = items.find(f => f.id === folderId && f.type === 'folder');
+			const folder = items.find((f) => f.id === folderId && f.type === 'folder');
 			if (folder && !folder.isOpen) {
 				await appState.toggleFolder(folderId);
 			}
 		}
-		
+
 		// Focus the input after it's rendered
 		setTimeout(() => {
 			const inputRef = createInputRef;
@@ -431,12 +439,12 @@
 		const type = creatingType;
 		let value = createValue.trim();
 		const folderId = creatingInFolder;
-		
+
 		if (!type) {
 			cancelCreate();
 			return;
 		}
-		
+
 		// Use default name if empty
 		if (!value) {
 			value = type === 'file' ? 'New File' : 'New Folder';
@@ -449,7 +457,7 @@
 				const newId = await appState.newFolder(value, folderId);
 				// Open the parent folder if needed
 				if (folderId !== null) {
-					const folder = appState.fileTree.find(f => f.id === folderId);
+					const folder = appState.fileTree.find((f) => f.id === folderId);
 					if (folder && !folder.isOpen) {
 						await appState.toggleFolder(folderId);
 					}
@@ -480,7 +488,7 @@
 			cancelCreate();
 		}
 	}
-	
+
 	function updateCreateValue(value: string) {
 		setCreateValue(value);
 	}
@@ -488,7 +496,7 @@
 	// Drag and Drop handlers
 	function handleDragStart(event: DragEvent, item: FileTreeItem) {
 		if (renamingItem) return;
-		
+
 		if (isRoot) {
 			draggingItem = item;
 		} else if (parentDragStart) {
@@ -497,12 +505,15 @@
 
 		if (event.dataTransfer) {
 			event.dataTransfer.effectAllowed = 'move';
-			event.dataTransfer.setData('text/plain', JSON.stringify({
-				type: item.type,
-				id: item.id,
-				name: item.name,
-				parentId: item.parentId
-			}));
+			event.dataTransfer.setData(
+				'text/plain',
+				JSON.stringify({
+					type: item.type,
+					id: item.id,
+					name: item.name,
+					parentId: item.parentId
+				})
+			);
 		}
 
 		// Add a small delay to show the drag effect
@@ -515,7 +526,7 @@
 	function handleDragEnd(event: DragEvent) {
 		const target = event.currentTarget as HTMLElement;
 		target.classList.remove('dragging');
-		
+
 		if (isRoot) {
 			draggingItem = null;
 			localDragOverItem = null;
@@ -527,11 +538,11 @@
 	function handleDragOver(event: DragEvent, item: FileTreeItem) {
 		event.preventDefault();
 		event.stopPropagation();
-		
+
 		if (event.dataTransfer) {
 			event.dataTransfer.dropEffect = 'move';
 		}
-		
+
 		// For folders: highlight the folder itself (item will go INTO the folder)
 		// For files: highlight the parent folder (item will go to SAME folder as the file)
 		if (item.type === 'folder') {
@@ -542,11 +553,11 @@
 			// The Sidebar will handle root highlighting
 			if (item.parentId !== null) {
 				// Find the parent folder and set it as drag over target
-				setDragOverItem({ 
-					type: 'folder', 
-					id: item.parentId, 
-					name: '', 
-					parentId: null 
+				setDragOverItem({
+					type: 'folder',
+					id: item.parentId,
+					name: '',
+					parentId: null
 				});
 			} else {
 				// File is at root level - clear dragOverItem, let Sidebar handle it
@@ -576,15 +587,15 @@
 			const draggedData = JSON.parse(data);
 			const draggedType = draggedData.type as 'file' | 'folder';
 			const draggedId = draggedData.id as number;
-			
+
 			// Determine the target folder:
 			// - If dropping on a folder, move into that folder
 			// - If dropping on a file, move to the same folder as that file (like VS Code)
 			let targetFolderId: number | null;
-			
+
 			if (targetItem.type === 'folder') {
 				targetFolderId = targetItem.id;
-				
+
 				// Don't drop folder on itself
 				if (draggedType === 'folder' && draggedId === targetFolderId) return;
 			} else {
@@ -614,6 +625,44 @@
 	function handleWindowClick() {
 		closeContextMenu();
 	}
+
+	// Adjust context menu position to prevent cropping
+	function adjustMenuPosition(node: HTMLElement, menuState: { x: number; y: number } | null) {
+		const updatePosition = () => {
+			if (!menuState) return;
+
+			const rect = node.getBoundingClientRect();
+			const { innerWidth, innerHeight } = window;
+
+			let { x, y } = menuState;
+
+			// Check vertical overflow
+			if (y + rect.height > innerHeight) {
+				y = innerHeight - rect.height - 8;
+			}
+			// Ensure it doesn't go off top
+			if (y < 8) y = 8;
+
+			// Check horizontal overflow
+			if (x + rect.width > innerWidth) {
+				x = innerWidth - rect.width - 8;
+			}
+			// Ensure it doesn't go off left
+			if (x < 8) x = 8;
+
+			node.style.left = `${x}px`;
+			node.style.top = `${y}px`;
+		};
+
+		updatePosition();
+
+		return {
+			update(newState: { x: number; y: number } | null) {
+				menuState = newState;
+				updatePosition();
+			}
+		};
+	}
 </script>
 
 <svelte:window onclick={handleWindowClick} />
@@ -622,12 +671,9 @@
 	<!-- Root level context menu trigger (only at depth 0) -->
 	{#if depth === 0}
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
-		<div 
-			class="root-context-trigger"
-			oncontextmenu={(e) => handleContextMenu(e, null)}
-		></div>
+		<div class="root-context-trigger" oncontextmenu={(e) => handleContextMenu(e, null)}></div>
 	{/if}
-	
+
 	<!-- Show creation input at root level if creating at root -->
 	{#if depth === 0 && creatingType !== null && creatingInFolder === null}
 		<li class="tree-item creating">
@@ -635,11 +681,15 @@
 				<span class="icon">
 					{#if creatingType === 'folder'}
 						<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
-							<path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
+							<path
+								d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"
+							/>
 						</svg>
 					{:else}
 						<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
-							<path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
+							<path
+								d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"
+							/>
 						</svg>
 					{/if}
 				</span>
@@ -658,11 +708,13 @@
 			</div>
 		</li>
 	{/if}
-	
+
 	{#each items as item (`${item.type}-${item.id}`)}
-		<li 
+		<li
 			class="tree-item"
-			class:drag-over-container={item.type === 'folder' && dragOverItem?.id === item.id && dragOverItem?.type === 'folder'}
+			class:drag-over-container={item.type === 'folder' &&
+				dragOverItem?.id === item.id &&
+				dragOverItem?.type === 'folder'}
 		>
 			<button
 				class="tree-button"
@@ -683,16 +735,22 @@
 					{#if item.type === 'folder'}
 						{#if item.isOpen}
 							<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
-								<path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"/>
+								<path
+									d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"
+								/>
 							</svg>
 						{:else}
 							<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
-								<path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
+								<path
+									d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"
+								/>
 							</svg>
 						{/if}
 					{:else}
 						<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
-							<path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
+							<path
+								d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"
+							/>
 						</svg>
 					{/if}
 				</span>
@@ -714,7 +772,7 @@
 				{#if item.type === 'folder'}
 					<span class="chevron" class:open={item.isOpen}>
 						<svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12">
-							<path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/>
+							<path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z" />
 						</svg>
 					</span>
 				{/if}
@@ -729,11 +787,15 @@
 								<span class="icon">
 									{#if creatingType === 'folder'}
 										<svg viewBox="0 0 16 16" fill="currentColor" width="16" height="16">
-											<path d="M1.75 1A.75.75 0 001 1.75v12.5c0 .414.336.75.75.75h12.5a.75.75 0 00.75-.75V3.75a.75.75 0 00-.75-.75H7.5L6.5 2H1.75zM2.5 4h11v9.5h-11V4z"/>
+											<path
+												d="M1.75 1A.75.75 0 001 1.75v12.5c0 .414.336.75.75.75h12.5a.75.75 0 00.75-.75V3.75a.75.75 0 00-.75-.75H7.5L6.5 2H1.75zM2.5 4h11v9.5h-11V4z"
+											/>
 										</svg>
 									{:else}
 										<svg viewBox="0 0 16 16" fill="currentColor" width="16" height="16">
-											<path d="M1.75 1h8.5c.966 0 1.75.784 1.75 1.75v11.5A1.75 1.75 0 0110.25 16h-8.5A1.75 1.75 0 010 14.25V2.75C0 1.784.784 1 1.75 1zm0 1.5a.25.25 0 00-.25.25v11.5c0 .138.112.25.25.25h8.5a.25.25 0 00.25-.25V2.75a.25.25 0 00-.25-.25h-8.5z"/>
+											<path
+												d="M1.75 1h8.5c.966 0 1.75.784 1.75 1.75v11.5A1.75 1.75 0 0110.25 16h-8.5A1.75 1.75 0 010 14.25V2.75C0 1.784.784 1 1.75 1zm0 1.5a.25.25 0 00-.25.25v11.5c0 .138.112.25.25.25h8.5a.25.25 0 00.25-.25V2.75a.25.25 0 00-.25-.25h-8.5z"
+											/>
 										</svg>
 									{/if}
 								</span>
@@ -753,10 +815,10 @@
 						</li>
 					</ul>
 				{/if}
-				
+
 				{#if item.children && item.children.length > 0}
-					<FileTree 
-						items={item.children} 
+					<FileTree
+						items={item.children}
 						depth={depth + 1}
 						parentFolderId={item.id}
 						onDragStart={(dragItem, event) => {
@@ -775,7 +837,7 @@
 							}
 						}}
 						dragOverItem={isRoot ? localDragOverItem : parentDragOverItem}
-						setDragOverItem={setDragOverItem}
+						{setDragOverItem}
 						sharedState={isRoot ? childSharedState : sharedState}
 						setSharedState={isRoot ? handleSetSharedState : setSharedState}
 					/>
@@ -787,21 +849,26 @@
 
 <!-- Context Menu -->
 {#if contextMenu}
-	<div 
+	<div
 		class="context-menu"
 		style="left: {contextMenu.x}px; top: {contextMenu.y}px"
+		use:adjustMenuPosition={contextMenu}
 	>
 		{#if contextMenu.item === null}
 			<!-- Root context menu -->
 			<button class="context-item" onclick={() => createAndRename('file', null)}>
 				<svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
-					<path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/>
+					<path
+						d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"
+					/>
 				</svg>
 				New File
 			</button>
 			<button class="context-item" onclick={() => createAndRename('folder', null)}>
 				<svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
-					<path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
+					<path
+						d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"
+					/>
 				</svg>
 				New Folder
 			</button>
@@ -809,35 +876,49 @@
 			<!-- Item context menu -->
 			{#if contextMenu.item.type === 'file'}
 				<!-- For files, show creation options in the same folder -->
-				<button class="context-item" onclick={() => createAndRename('file', contextMenu!.item!.parentId)}>
+				<button
+					class="context-item"
+					onclick={() => createAndRename('file', contextMenu!.item!.parentId)}
+				>
 					<svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
-						<path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/>
+						<path
+							d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"
+						/>
 					</svg>
 					New File
 				</button>
-				<button class="context-item" onclick={() => createAndRename('folder', contextMenu!.item!.parentId)}>
+				<button
+					class="context-item"
+					onclick={() => createAndRename('folder', contextMenu!.item!.parentId)}
+				>
 					<svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
-						<path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
+						<path
+							d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"
+						/>
 					</svg>
 					New Folder
 				</button>
 				<div class="context-separator"></div>
 				<button class="context-item" onclick={() => handleDownloadFile(contextMenu!.item!)}>
 					<svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
-						<path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+						<path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
 					</svg>
 					Download as Markdown
 				</button>
 				<div class="context-separator"></div>
 				<button class="context-item" onclick={() => handleRename(contextMenu!.item!)}>
 					<svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
-						<path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+						<path
+							d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"
+						/>
 					</svg>
 					Rename
 				</button>
 				<button class="context-item danger" onclick={() => handleDelete(contextMenu!.item!)}>
 					<svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
-						<path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+						<path
+							d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"
+						/>
 					</svg>
 					Delete
 				</button>
@@ -845,33 +926,44 @@
 				<!-- For folders, show creation options first, then rename/delete -->
 				<button class="context-item" onclick={() => createAndRename('file', contextMenu!.item!.id)}>
 					<svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
-						<path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/>
+						<path
+							d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"
+						/>
 					</svg>
 					New File
 				</button>
-				<button class="context-item" onclick={() => createAndRename('folder', contextMenu!.item!.id)}>
+				<button
+					class="context-item"
+					onclick={() => createAndRename('folder', contextMenu!.item!.id)}
+				>
 					<svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
-						<path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
+						<path
+							d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"
+						/>
 					</svg>
 					New Folder
 				</button>
 				<div class="context-separator"></div>
 				<button class="context-item" onclick={() => handleDownloadFolder(contextMenu!.item!)}>
 					<svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
-						<path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+						<path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
 					</svg>
 					Download as Markdown
 				</button>
 				<div class="context-separator"></div>
 				<button class="context-item" onclick={() => handleRename(contextMenu!.item!)}>
 					<svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
-						<path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+						<path
+							d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"
+						/>
 					</svg>
 					Rename
 				</button>
 				<button class="context-item danger" onclick={() => handleDelete(contextMenu!.item!)}>
 					<svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
-						<path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+						<path
+							d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"
+						/>
 					</svg>
 					Delete
 				</button>
